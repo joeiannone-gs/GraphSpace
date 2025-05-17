@@ -1,0 +1,9 @@
+//SIZING FOR THUMBNAILS
+
+
+
+export const THUMBNAIL_WIDTH_TO_HEIGHT = 2
+
+
+export const THUMBNAIL_WIDTH = 120, THUMBNAIL_HEIGHT = 75;
+export const HEADER_PERC = 0.2

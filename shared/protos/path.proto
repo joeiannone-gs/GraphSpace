@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+
+
+
+message Path {
+    map<string, Elems> map = 1;
+}
+
+message Elems {
+    repeated string ids = 1;
+}

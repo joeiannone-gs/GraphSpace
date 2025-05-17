@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+
+import "node.proto";
+import "edge.proto";
+// import "path.proto";
+
+message Graph {
+    string name = 1;
+    string description = 2;
+    map<string, Node> nodeIdMap = 3;
+    map<string, Edge> edgeIdMap = 4;
+    // Path gradientPathMap = 5;
+}
+
+
+
+

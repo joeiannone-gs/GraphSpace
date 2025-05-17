@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+import "graph.proto";
+import "project.proto";
+import "deltas.proto";
+import "value.proto";
+import "path.proto";
+
+
+message MessageList {
+  repeated Wrapper list = 1;
+}
+
+
+
+message Wrapper {
+  enum Event {
+    UNKNOWN = 0;
+    GRAPH = 1;
+    COMMIT = 2;
+    BRANCH = 3;
+    USER_PROJECT = 4;
+    BACKWARD_DELTAS = 5;
+    FORWARD_DELTAS = 6;
+    UPDATE_DISPLAY_VALUE = 7;
+    UPDATE_STREAMING_DISPLAY_VALUE = 8;
+  }
+  
+  Event event = 1;
+
+  repeated string args = 2;
+  
+  oneof payload {
+    Graph graphPB = 3;
+    Project projectPB = 4;
+    string stringifiedJSON = 5;
+    BackwardDeltas backwardDeltasPB = 6;
+    ForwardDeltas forwardDeltasPB = 7;
+    Commit commitPB = 8;
+    Branch branchPB = 9;
+    Path pathPB = 10;
+    NestedArray nestedArrayPB = 11;
+  }
+}
+

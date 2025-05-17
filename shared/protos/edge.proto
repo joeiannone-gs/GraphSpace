@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+
+
+message Edge {
+    string startNodeId = 1;
+    string endNodeId = 2;
+    repeated float startPos = 3;
+    repeated float endPos = 4;
+}

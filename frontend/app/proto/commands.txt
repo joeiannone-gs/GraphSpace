@@ -1,0 +1,7 @@
+
+
+protojs bug - interfaces may not be created for a message 
+solution is to move up .proto in command 
+
+pbjs -t static-module -w commonjs -o compiled.js path.proto edge.proto value.proto project.proto deltas.proto graph.proto nested_array_store.proto wrapper.proto node.proto 
+pbts -o compiled.d.ts compiled.js

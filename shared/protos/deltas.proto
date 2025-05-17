@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+
+
+// import "graph.proto";
+import "node.proto";
+import "edge.proto";
+
+message ForwardDeltas {
+    IdObjMap add = 1;
+    IdList delete  = 2 ;
+    IdPropMap update = 3;
+}
+
+message BackwardDeltas {
+    IdList add = 1;
+    IdObjMap delete  = 2 ;
+    IdPropMap update = 3;
+}
+
+
+message IdObjMap {
+    map<string, Node> nodeIdMap = 1;
+    map<string, Edge> edgeIdMap = 2;
+}
+
+message IdList {
+    repeated string nodeIdMap = 1;
+    repeated string edgeIdMap = 2;
+}
+
+message IdPropMap {
+    map<string, Node> nodeIdMap =1; //should be a node with one defined property, the changed property
+    map<string, Edge> edgeIdMap =2; //should be a edge with one defined property, the changed property
+    string name = 3;
+    string description = 4;
+}

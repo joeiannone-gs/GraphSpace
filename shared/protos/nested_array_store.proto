@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+
+import "value.proto";
+
+
+message NestedArrayStore {
+    map<string, NestedArrayEntry> map = 1;
+}
+
+message NestedArrayEntry {
+    NestedArray value  = 1; //try stringOrFloat (instead of just float) for now just to keep things simple
+    NestedArray trunctated_value = 2;
+}
+
+

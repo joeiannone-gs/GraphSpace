@@ -1,0 +1,5 @@
+//SIZING FOR NODES
+
+
+export const NODE_RADIUS = 300
+export const SCALE_ZONE_RADIUS = NODE_RADIUS*0.9

@@ -1,0 +1,18 @@
+
+
+
+
+Python (computeserver):
+
+
+protoc --proto_path=. --python_out=../../computeserver/server/protos --pyi_out=../../computeserver/server/protos project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
+protol --create-package --in-place --python-out ../../computeserver/server/protos protoc --proto-path=. project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
+
+
+
+Typescript (frontend): 
+protojs bug - interfaces may not be created for a message 
+solution is to move up .proto in command 
+
+pbjs -t static-module -w commonjs -o ../../frontend/app/proto/compiled.js path.proto edge.proto value.proto project.proto deltas.proto graph.proto nested_array_store.proto wrapper.proto node.proto 
+pbts -o ../../frontend/app/proto/compiled.d.ts ../../frontend/app/proto/compiled.js

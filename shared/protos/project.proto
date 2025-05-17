@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+
+// import "deltas.proto";
+// import "graph.proto";
+
+message Project {
+    string id = 1;
+    string ownerId = 2;
+    bool isAbsNode = 3;
+    map<string, Branch> branches = 4;
+    map<string, Commit> commits = 5;
+    // map<string, Graph> graphs = 6;
+    // repeated string branchOrder = 7;
+}
+
+
+message Branch {
+    string name = 1;
+    string latestCommitId = 2;
+    string projectId = 3;
+    // BackwardDeltas backwardDeltas = 4;
+    // ForwardDeltas forwardDeltas = 5;
+}
+
+message Commit {
+    string message = 1;
+    string timestamp = 2;
+    string branchName = 3;
+    string prevCommitId = 4;
+    repeated string nextCommitIds = 5;
+    // BackwardDeltas backwardDeltas = 6;
+}
+

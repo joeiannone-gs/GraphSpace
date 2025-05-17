@@ -1,0 +1,22 @@
+
+.vscode
+users.db
+
+# Compute Server
+computeserver/.env
+computeserver/users.db
+computeserver/.venv/
+computeserver/server/EBS/
+computeserver/server/protos/
+*.pyc
+*.pyo
+__pycache__/
+*.bin
+
+
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/app/proto/compiled.d.ts
+frontend/app/proto/compiled.js

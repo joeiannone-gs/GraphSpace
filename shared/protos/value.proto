@@ -1,0 +1,42 @@
+
+
+
+message NestedArray {
+
+    message Value {
+      oneof value {
+        float floatValue = 1;
+        string stringValue = 2;
+      }
+    }
+    
+    message ArrayOfValues {
+      repeated Value values = 1;
+    }
+  
+    message ArrayOfNestedArrays {
+      repeated NestedArray nestedArrays = 1;
+    }
+  
+    oneof kind {
+      ArrayOfValues arrayOfValues = 1;
+      ArrayOfNestedArrays arrayOfNestedArrays  = 2;
+    }
+}
+
+
+// message NestedArrayFloat {
+
+//     message ArrayOfValues {
+//       repeated float values = 1;
+//     }
+  
+//     message ArrayOfNestedArrays {
+//       repeated NestedArrayFloat nestedArrays = 1;
+//     }
+  
+//     oneof kind {
+//       ArrayOfValues arrayOfValues = 1;
+//       ArrayOfNestedArrays arrayOfNestedArrays  = 2;
+//     }
+// }

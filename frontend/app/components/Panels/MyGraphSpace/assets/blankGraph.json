@@ -1,0 +1,36 @@
+{
+    "name": "",
+    "id": "",
+    "explanation": "",
+    "nodeIdMap": {},
+    "edgeIdMap": {},
+    "commitHistory": {
+        "commitIdMap":{
+           
+        },
+        "branches": [
+            {
+                "name": "main",
+                "latestCommitId": "",
+                "deltas": {
+                    "nodeAdditions": [],
+                    "nodeSubtractions": [],
+                    "edgeAdditions": [],
+                    "edgeSubtractions": [],
+                    "properties": {
+                        
+                    }
+                },
+                "currentSave": {
+                    "explanation": "",
+                    "nodeIdMap": {
+
+                    },
+                    "edgeIdMap": {
+ 
+                    }
+                }
+            }
+        ]
+    }
+}

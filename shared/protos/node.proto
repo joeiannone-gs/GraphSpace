@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+
+
+message Node {
+    NodeTypeEnum type = 1;
+
+    string name = 2;
+    string explanation = 3;
+    repeated float position = 4;
+    Metadata metadata = 5;
+    repeated string outgoingEdges = 6;
+    repeated string incomingEdges = 7;
+    repeated string children = 8;
+    float childrenScale = 9;
+    string parent = 10;
+    string valuePointer = 11;
+    // NestedArray value = 12;
+    // NestedArray displayValue = 13;
+}
+
+
+message Metadata {
+    map<string, Value> values = 1;
+
+    message Value {
+        message NumberArray {
+            repeated float elems = 1;
+        }
+
+        message NumberMatrix {
+            repeated NumberArray rows = 1; 
+        }
+
+        oneof value {
+            string stringValue = 1;
+            float numberValue = 2;
+            NumberArray arrayValue = 3;
+            NumberMatrix matrixValue = 4;
+        }
+    }
+}
+
+
+enum NodeTypeEnum {
+    NOT_DEFINED = 0;
+    ABS = 1;
+    VALUE = 2;
+    ADD = 3;
+    SUBTRACT = 4;
+    MULTIPLY = 5;
+    DIVIDE = 6;
+    SQUARE = 7;
+    AVERAGE = 8;
+    PARAMETER = 9;
+    RELU = 10;
+    SLICE = 11;
+    IMPORT = 12;
+    CHART = 13;
+    FLATTEN = 14;
+    ARRAY = 15;
+    IMAGE = 16;
+    STACK = 17;
+    POP = 18;
+    DOT = 19;
+    SIGMOID = 20;
+  }
+  
+  
+
+  
+
+  
+  
