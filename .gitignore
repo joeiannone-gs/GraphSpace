@@ -1,11 +1,14 @@
 
 .vscode
 users.db
+aws/
+venv
+.venv
+
 
 # Compute Server
 computeserver/.env
 computeserver/users.db
-computeserver/.venv/
 computeserver/server/EBS/
 computeserver/server/protos/
 *.pyc

@@ -53,14 +53,14 @@ const Manager = () => {
   const [message, setMessage] = useState('')
 
   //Hooks
-  const auth0Client = useAuth() 
+  // const auth0Client = useAuth() 
   useSaveInterval()
   const { isLoading, error } = usePixiAssets()
   useInitialize()
 
   //Auth0 login pipeline
   const loginClick = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!auth0Client) return
+    // if (!auth0Client) return
 
     //TEMP MEASURE TO CUT OUT AUTH
     // dispatchSetIsAuthenticated(true)
@@ -87,7 +87,7 @@ const Manager = () => {
     //     });
     //   }, 5000);
     // }
-  }, [auth0Client])
+  }, [])
 
 
 
@@ -124,7 +124,6 @@ const Manager = () => {
     (!isLoading && !error) ? (
 
     <div id='manager' tabIndex={-1}>
-    <ServerContext.Provider value={{auth0Client}}>
     
     
     <SiteHeader />
@@ -144,7 +143,6 @@ const Manager = () => {
            <Tabs />
            <GraphControlButtons />
   
-         </ServerContext.Provider>
        </div>
   ) : <></>
 )

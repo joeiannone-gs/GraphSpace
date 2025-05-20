@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+sudo dnf update -y
+
+sudo dnf install -y python3.12 git nodejs npm protobuf-compiler
+python3.12 -m ensurepip
+
+git clone https://joeiannone-gs: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@github.com/joeiannone-gs/GraphSpace.git
+
+cd GraphSpace && pip3.12 install -r requirements.txt
+python3.12 computeserver/server/database/create_database.py
+mkdir -p computeserver/server/protos
+protoc --proto_path=shared/protos --python_out=computeserver/server/protos project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
+protol --create-package --in-place --python-out computeserver/server/protos protoc --proto-path=shared/protos project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
+python3.12 -m computeserver.main
+
+
+cd ../frontend
+npm install
+sudo npm install -g protobufjs-cli
+pbjs -t static-module -p ../shared/protos -w commonjs -o app/proto/compiled.js path.proto edge.proto value.proto project.proto deltas.proto graph.proto nested_array_store.proto wrapper.proto node.proto 
+pbts -o app/proto/compiled.d.ts app/proto/compiled.js
+npm run dev
