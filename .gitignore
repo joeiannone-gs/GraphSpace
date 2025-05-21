@@ -1,6 +1,6 @@
 
 # .vscode
-users.db
+# users.db
 aws/
 venv
 .venv
@@ -10,6 +10,7 @@ venv
 computeserver/.env
 computeserver/users.db
 computeserver/server/EBS/users/
+!computeserver/server/EBS/users/test_user
 computeserver/server/protos/
 *.pyc
 *.pyo
