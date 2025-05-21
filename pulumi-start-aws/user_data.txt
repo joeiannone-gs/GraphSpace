@@ -7,7 +7,7 @@ sudo dnf update -y
 sudo dnf install -y python3.12 git nodejs npm protobuf-compiler nginx
 python3.12 -m ensurepip
 
-cat <<EOF > /home/ec2-user/openssl-ip.cnf
+cat <<'EOF' > /home/ec2-user/openssl-ip.cnf
 [req]
 default_bits = 4096
 default_md = sha256
@@ -32,10 +32,10 @@ subjectAltName = @alt_names
 IP.1 = 54.187.246.153
 EOF
 
-sudo openssl req -new -nodes -x509 -days 365   -keyout /etc/ssl/private/nginx-selfsigned.key   -out /etc/ssl/certs/nginx-selfsigned.crt   -config /home/ec2-user/openssl-ip.cnf
+sudo openssl req -new -nodes -x509 -days 365   -keyout /etc/ssl/nginx-selfsigned.key   -out /etc/ssl/certs/nginx-selfsigned.crt   -config /home/ec2-user/openssl-ip.cnf
 
 
-cat <<EOF | sudo tee /etc/nginx/nginx.conf
+cat <<'EOF' | sudo tee /etc/nginx/nginx.conf
 
 user nginx;
 worker_processes auto;
@@ -56,7 +56,7 @@ http {
         server_name _;
 
         ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
-        ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+        ssl_certificate_key /etc/ssl/nginx-selfsigned.key;
 
         location / {
             proxy_pass http://127.0.0.1:3000;
@@ -86,10 +86,10 @@ python3.12 computeserver/server/database/create_database.py
 mkdir -p computeserver/server/protos
 protoc --proto_path=shared/protos --python_out=computeserver/server/protos project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
 protol --create-package --in-place --python-out computeserver/server/protos protoc --proto-path=shared/protos project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
-python3.12 -m computeserver.main
+python3.12 -m computeserver.main &
 
 
-cd ../frontend
+cd frontend
 npm install
 sudo npm install -g protobufjs-cli
 pbjs -t static-module -p ../shared/protos -w commonjs -o app/proto/compiled.js path.proto edge.proto value.proto project.proto deltas.proto graph.proto nested_array_store.proto wrapper.proto node.proto 
