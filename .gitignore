@@ -14,7 +14,6 @@ computeserver/server/protos/
 *.pyc
 *.pyo
 __pycache__/
-*.bin
 
 
 
