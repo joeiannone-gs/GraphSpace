@@ -1,8 +1,12 @@
-## GraphSpace
+# GraphSpace
 
 
-# Run Compute Server 
+## Run Compute Server 
 python3 -m computeserver.main
 
-# Run Frontend Server
+## Run Frontend Server
 cd frontend && npm run dev
+
+## SSH 
+
+Reset Key: ssh-keygen -R 54.187.246.153

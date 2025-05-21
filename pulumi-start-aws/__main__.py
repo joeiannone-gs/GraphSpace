@@ -4,13 +4,16 @@ import pulumi_aws as aws
 # 1. Security Group: Allow SSH and HTTP
 web_sg = aws.ec2.SecurityGroup(
     "web-sg",
-    description="Allow SSH, HTTP and custom ports",
+    description="Allow SSH, HTTP, HTTPS (TLS), and custom ports",
     ingress=[
         aws.ec2.SecurityGroupIngressArgs(
             protocol="tcp", from_port=22, to_port=22, cidr_blocks=["0.0.0.0/0"]
         ),
         aws.ec2.SecurityGroupIngressArgs(
             protocol="tcp", from_port=80, to_port=80, cidr_blocks=["0.0.0.0/0"]
+        ),
+        aws.ec2.SecurityGroupIngressArgs(
+            protocol="tcp", from_port=443, to_port=443, cidr_blocks=["0.0.0.0/0"]  # TLS/HTTPS
         ),
         aws.ec2.SecurityGroupIngressArgs(
             protocol="tcp", from_port=3000, to_port=3000, cidr_blocks=["0.0.0.0/0"]

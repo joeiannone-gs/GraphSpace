@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .server.app.routers import connect, data, projects, run
 
 
-app = FastAPI()
+app = FastAPI(root_path="/api")
 app.include_router(connect.router)
 app.include_router(data.router)
 app.include_router(projects.router)

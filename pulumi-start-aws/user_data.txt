@@ -4,8 +4,79 @@ set -e
 
 sudo dnf update -y
 
-sudo dnf install -y python3.12 git nodejs npm protobuf-compiler
+sudo dnf install -y python3.12 git nodejs npm protobuf-compiler nginx
 python3.12 -m ensurepip
+
+cat <<EOF > /home/ec2-user/openssl-ip.cnf
+[req]
+default_bits = 4096
+default_md = sha256
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C = US
+ST = State
+L = City
+O = GraphSpace
+OU = GraphSpace
+CN = 54.187.246.153
+
+[v3_req]
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+IP.1 = 54.187.246.153
+EOF
+
+sudo openssl req -new -nodes -x509 -days 365   -keyout /etc/ssl/private/nginx-selfsigned.key   -out /etc/ssl/certs/nginx-selfsigned.crt   -config /home/ec2-user/openssl-ip.cnf
+
+
+cat <<EOF | sudo tee /etc/nginx/nginx.conf
+
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log notice;
+pid /run/nginx.pid;
+
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    server {
+        listen 443 ssl;
+        listen [::]:443 ssl;
+        http2 on;
+        server_name _;
+
+        ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+        ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+
+        location / {
+            proxy_pass http://127.0.0.1:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /api/ {
+            proxy_pass http://127.0.0.1:8080$request_uri;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+EOF
+
 
 git clone https://joeiannone-gs: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@github.com/joeiannone-gs/GraphSpace.git
 
