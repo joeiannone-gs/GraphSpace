@@ -9,7 +9,7 @@ venv
 # Compute Server
 computeserver/.env
 computeserver/users.db
-computeserver/server/EBS/users/
+computeserver/server/EBS/users/*
 !computeserver/server/EBS/users/test_user
 computeserver/server/protos/
 *.pyc

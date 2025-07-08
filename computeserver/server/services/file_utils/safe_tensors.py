@@ -4,13 +4,14 @@ import uuid
 from computeserver.server.types.value import TensorType
 import tensorflow as tf 
 from safetensors.tensorflow import save_file, load_file, safe_open
-from .helpers import get_file_path
+from .helpers import ensure_directory, get_file_path
 
 
 
 def create_safe_tensor_file(user_id: str, adj_list_id: str) -> None:
     """Create a new safe tensor file for an adjList"""
     file_path = get_file_path(user_id, 'safe_tensors', adj_list_id, 'safetensors')
+    ensure_directory(file_path)
     save_file({}, file_path, metadata={"blank": "blank"})
 
 

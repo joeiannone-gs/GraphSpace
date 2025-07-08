@@ -1,6 +1,6 @@
 
 // export const BASE_ADDRESS = 'http://localhost'
-export const BASE_ADDRESS = 'http://54.187.246.153/api/'
+export const BASE_ADDRESS = 'https://54.187.246.153/api/'
 
 // export const PORT = "8080"
 
