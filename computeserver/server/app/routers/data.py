@@ -170,7 +170,7 @@ async def public(key: str):
                 array = convert_from_nested_array(nested_array_entry.value)
 
     else: 
-        tensor = load_file(f"server/EBS/public/tensors/{file_info[1]}.safetensors").get(file_info[1])
+        tensor = load_file(filename=f"computeserver/server/EBS/public/tensors/{file_info[1]}.safetensors").get(file_info[1])
         if tensor is not None:
             array = convert_to_list(tensor)
             

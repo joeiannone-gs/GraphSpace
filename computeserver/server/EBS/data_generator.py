@@ -37,7 +37,7 @@ def generate_correlated_points(n, correlation=0.7, x_mean=0, x_std=1, y_mean=0, 
 def create_2d_points_safetensor(n=1000, correlation=0.7, filename="2d_points"):
    
     # Create the directory path for public tensors
-    tensor_dir = "server/EBS/public/tensors"
+    tensor_dir = "computeserver/server/EBS/public/tensors"
     os.makedirs(tensor_dir, exist_ok=True)
     
     # Create the full path with filename
@@ -84,10 +84,10 @@ def create_mnist_data():
 
 
     # Ensure directory exists
-    os.makedirs('server/EBS/public/nested-array', exist_ok=True)
+    os.makedirs('computeserver/server/EBS/public/nested-array', exist_ok=True)
     
     # Write the proto to file
-    with open('server/EBS/public/nested-array/public-mnist-01.bin', 'wb') as f:
+    with open('computeserver/server/EBS/public/nested-array/public-mnist-01.bin', 'wb') as f:
         f.write(nested_arr_store.SerializeToString())
 
 

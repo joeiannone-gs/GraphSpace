@@ -10,7 +10,7 @@ def test_list_data(list_id):
     """
     try:
         # Path to the public list data
-        file_path = f'server/EBS/public/lists/{list_id}.bin'
+        file_path = f'computeserver/server/EBS/public/lists/{list_id}.bin'
         
         # Check if file exists
         if not os.path.exists(file_path):

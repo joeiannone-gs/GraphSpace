@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 # Constants for file paths
-BASE_PATH = 'server/EBS'
+BASE_PATH = 'computeserver/server/EBS'
 USER_PATH_TEMPLATE = f'{BASE_PATH}/users/{{user_id}}/{{resource_type}}/{{resource_id}}.{{extension}}'
 PUBLIC_PATH_TEMPLATE = f'{BASE_PATH}/public/{{resource_type}}/{{resource_id}}.{{extension}}'
 
