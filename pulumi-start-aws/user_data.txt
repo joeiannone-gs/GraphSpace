@@ -102,7 +102,6 @@ python3.12 computeserver/server/database/create_database.py
 mkdir -p computeserver/server/protos
 protoc --proto_path=shared/protos --python_out=computeserver/server/protos project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
 protol --create-package --in-place --python-out computeserver/server/protos protoc --proto-path=shared/protos project.proto graph.proto nested_array_store.proto wrapper.proto deltas.proto value.proto path.proto node.proto edge.proto 
-python3.12 -m computeserver.main &
 
 
 cd frontend
@@ -110,4 +109,3 @@ npm install
 sudo npm install -g protobufjs-cli
 pbjs -t static-module -p ../shared/protos -w commonjs -o app/proto/compiled.js path.proto edge.proto value.proto project.proto deltas.proto graph.proto nested_array_store.proto wrapper.proto node.proto 
 pbts -o app/proto/compiled.d.ts app/proto/compiled.js
-npm run dev

@@ -6,10 +6,10 @@ EC2:
 -install Python Debugger and SQLite extensions
 
 ## Run Compute Server 
-python3 -m computeserver.main
+sudo python3 -m computeserver.main
 
 ## Run Frontend Server
-cd frontend && npm run dev
+cd frontend && sudo npm run dev
 
 ## SSH 
 
