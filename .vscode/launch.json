@@ -21,40 +21,16 @@
         "type": "chrome",
         "request": "launch",
         "url": "http://localhost:3000",
-        "webRoot": "${workspaceFolder}/gs-app",
+        "webRoot": "${workspaceFolder}/frontend",
         "smartStep": true,
-        "skipFiles": [
-          "${workspaceFolder}/gs-app/<node_internals>/**",
-          "${workspaceFolder}/gs-app/node_modules/**/*.js",
-          "${workspaceFolder}/gs-app/node_modules/**"
-      ]
       },
-      {
-        "name": "Next.js: debug full stack",
-        "type": "node",
-        "request": "launch",
-        "program": "${workspaceFolder}/gs-app/node_modules/.bin/next",
-        "runtimeArgs": ["--inspect"],
-        "skipFiles": [
-          "<node_internals>/**",
-          "node_modules/**"
-        ],
-        "serverReadyAction": {
-          "action": "debugWithEdge",
-          "killOnServerStop": true,
-          "pattern": "- Local:.+(https?://.+)",
-          "uriFormat": "%s",
-          "webRoot": "${workspaceFolder}/gs-app/"
-        }
-      },
-
       {
         "name": "Python Debugger: FastAPI",
         "type": "debugpy",
         "request": "launch",
         "module": "uvicorn",
         "args": [
-            "main:app",
+            "computeserver.main:app",
             "--reload",
             "--port", 
             "8080"
@@ -92,20 +68,5 @@
             "CONDA_DEFAULT_ENV": "computeserver"
         }
     },
-    {
-        "name": "Python: Flask",
-        "type": "debugpy",
-        "request": "launch",
-        "module": "flask",
-        "env": {
-            "FLASK_APP": "server/manager/app.py",
-            "FLASK_DEBUG": "1"
-        },
-        "args": [
-            "run",
-            "--no-debugger"
-        ],
-        "jinja": true
-    }
     ]
   }

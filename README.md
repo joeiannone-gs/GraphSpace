@@ -1,6 +1,10 @@
 # GraphSpace
 
 
+EC2: 
+
+-install Python Debugger and SQLite extensions
+
 ## Run Compute Server 
 python3 -m computeserver.main
 
