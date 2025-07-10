@@ -97,6 +97,8 @@ sudo systemctl restart nginx
 
 git clone https://joeiannone-gs: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@github.com/joeiannone-gs/GraphSpace.git
 
+sudo chmod -R 777 ../../GraphSpace
+
 cd GraphSpace && pip3.12 install -r requirements.txt
 python3.12 computeserver/server/database/create_database.py
 mkdir -p computeserver/server/protos
@@ -109,3 +111,5 @@ npm install
 sudo npm install -g protobufjs-cli
 pbjs -t static-module -p ../shared/protos -w commonjs -o app/proto/compiled.js path.proto edge.proto value.proto project.proto deltas.proto graph.proto nested_array_store.proto wrapper.proto node.proto 
 pbts -o app/proto/compiled.d.ts app/proto/compiled.js
+
+
