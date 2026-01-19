@@ -6,11 +6,18 @@
   <h1>GraphSpace</h1>
   <p><b>Visual Machine Learning. Frictionless Building. Real Understanding.</b></p>
 
-  <p>
-    <a href="#"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"/></a>
-    <a href="#"><img alt="Python Version" src="https://img.shields.io/badge/python-3.12+-yellow.svg"/></a>
-    <a href="#"><img alt="Frontend" src="https://img.shields.io/badge/frontend-React%2FNode.js-green"/></a>
-  </p>
+ <p>
+  <a href="#"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-red.svg"/></a>
+  <a href="#"><img alt="Python Version" src="https://img.shields.io/badge/python-3.12+-yellow.svg"/></a>
+  
+  <a href="#"><img alt="Frontend" src="https://img.shields.io/badge/frontend-React-61DAFB?logo=react&logoColor=black"/></a>
+  <a href="#"><img alt="Graphics" src="https://img.shields.io/badge/graphics-WebGL-990000?logo=webgl&logoColor=white"/></a>
+  
+  <a href="#"><img alt="API" src="https://img.shields.io/badge/backend-FastAPI-05998b?logo=fastapi&logoColor=white"/></a>
+  <a href="#"><img alt="Database" src="https://img.shields.io/badge/database-SQLite-003B57?logo=sqlite&logoColor=white"/></a>
+
+  <a href="#"><img alt="PRs" src="https://img.shields.io/badge/PRs-welcome-blueviolet"/></a>
+</p>
 </div>
 
 ---
