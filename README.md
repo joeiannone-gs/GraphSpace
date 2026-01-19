@@ -46,7 +46,7 @@ Build real, working ML architectures visually.
       <p>Create and iterate with a drag-and-drop visual interface.</p>
     </td>
     <td>
-      <img width="400" height="225" src="https://github.com/user-attachments/assets/9615470a-e2c9-49fc-a8a7-9477731a77fe" alt="Visual model building interface" />
+      <img width="400" height="225" src="https://cdn.prod.website-files.com/6822ca7497b6cc13b9f804c2/691ccdedaba95a8c8afc3148_build-gif.gif" alt="Visual model building interface" />
     </td>
   </tr>
   <tr>
@@ -55,7 +55,7 @@ Build real, working ML architectures visually.
       <p>Watch data streams and model parameters update in real-time.</p>
     </td>
     <td>
-      <img width="400" height="225" src="https://github.com/user-attachments/assets/3f101856-c3f9-4cea-9b80-b88e83b5ea4a" alt="Model introspection view" />
+      <img width="400" height="225" src="https://cdn.prod.website-files.com/6822ca7497b6cc13b9f804c2/691ccf66695b8b137d9405a7_import-gif.gif" alt="Model introspection view" />
     </td>
   </tr>
   <tr>
@@ -64,7 +64,7 @@ Build real, working ML architectures visually.
       <p>Track changes, branch experiments, and collaborate with your team seamlessly.</p>
     </td>
     <td>
-      <img width="400" height="225" src="https://github.com/user-attachments/assets/159e7ed3-5018-4446-a7c0-d593eda96fe2" alt="Version control interface" />
+      <img width="400" height="225" src="https://cdn.prod.website-files.com/6822ca7497b6cc13b9f804c2/691cd0e1e53a6388ad1d92d1_vcs-gif.gif" alt="Version control interface" />
     </td>
   </tr>
 </table>
@@ -73,9 +73,9 @@ Build real, working ML architectures visually.
 ### Visualize Everything 
 <table>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/c861987a-ef25-4456-983e-db048de218ab" width="400"></td>
-    <td><img src="https://github.com/user-attachments/assets/82f54543-10fb-48d9-9d10-9a6bc50ae8d8" width="400"></td>
-    <td><img src="https://github.com/user-attachments/assets/b4f44e96-1935-47c7-8010-e84df1256021" width="400"></td>
+    <td><img src="https://cdn.prod.website-files.com/6822ca7497b6cc13b9f804c2/691e1516036b91f4f9ae5598_array-gif.gif" width="400"></td>
+    <td><img src="https://cdn.prod.website-files.com/6822ca7497b6cc13b9f804c2/69164b1843c0dde4a06f6981_ezgif-5177e2f7b3e1ee43.gif" width="400"></td>
+    <td><img src="https://cdn.prod.website-files.com/6822ca7497b6cc13b9f804c2/691e15063e5b6e0a34561a35_tensor-gif.gif" width="400"></td>
   </tr>
 </table>
 ---
