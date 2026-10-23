@@ -1,0 +1,25 @@
+[Unit]
+Description=GraphSpace (Next.js standalone server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=graphspace
+Group=graphspace
+WorkingDirectory=/opt/graphspace/current
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+Environment=DATABASE_PATH=/var/lib/graphspace/gs.db
+EnvironmentFile=-/etc/graphspace/env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/graphspace
+
+[Install]
+WantedBy=multi-user.target

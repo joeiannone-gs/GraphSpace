@@ -1,0 +1,15 @@
+name: graphspace
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+description: One small EC2 instance running GraphSpace behind Caddy, with releases and backups in S3.
+config:
+  aws:region:
+    description: The project's selected Region (AWS Settings > View all projects > Overview > Additional Info > Region).
+  graphspace:domain:
+    description: Hostname that points at the instance's Elastic IP, e.g. graphspace.josephiannone.com
+  graphspace:inviteCode:
+    description: Secret code students enter to sign up (pulumi config set --secret inviteCode ...).
+  graphspace:instanceType:
+    description: EC2 instance type (default t3.small).
