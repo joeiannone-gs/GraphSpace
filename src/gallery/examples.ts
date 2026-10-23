@@ -1,7 +1,8 @@
 /** Example projects, written with the builder. Used by the sandbox, the gallery and lessons. */
 import { DocBuilder } from '@/doc/builder';
 import type { ProjectDoc } from '@/doc/types';
-import { linear, mlp, mse } from '@/library/builtin';
+import { CORPORA, vocabOf } from '@/engine/text';
+import { layerNorm, linear, mlp, mse, transformerBlock } from '@/library/builtin';
 
 export interface Example {
   slug: string;
@@ -89,7 +90,56 @@ export const mnistClassifier: Example = {
   },
 };
 
-export const examples: Example[] = [fitALine, xorMlp, mnistClassifier];
+/** A tiny GPT-style character model: embeddings, transformer blocks, and a generation loop. */
+export function buildCharTransformer(opts: { corpus?: string; context?: number; dModel?: number; heads?: number; blocks?: number } = {}) {
+  const corpus = opts.corpus ?? 'sonnets';
+  const T = opts.context ?? 16;
+  const D = opts.dModel ?? 32;
+  const V = vocabOf(CORPORA[corpus].text).chars.length;
+  const b = new DocBuilder();
+  b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.01, steps: 600 };
+  b.doc.generate = { steps: 200 };
+  b.doc.info.description =
+    'A tiny transformer that reads 16 characters and predicts the next one. Train it, then press **Generate**: each new character is fed back into the text (the dashed orange connection) to predict the one after.';
+  const text = b.add('text_data', { source: corpus, context: T, batchSize: 8 }, { label: 'Text' });
+  const table = b.add('parameter', { shape: [V, D], init: 'normal', scale: 0.1 }, { label: 'character vectors' });
+  const emb = b.add('embedding');
+  b.wire(table, emb, 'table');
+  b.wire([text, 'x'], emb, 'ids');
+  const pos = b.add('parameter', { shape: [T, D], init: 'normal', scale: 0.1 }, { label: 'position vectors' });
+  let h = b.add('add', {}, { label: 'input' });
+  b.wire(emb, h, 'a');
+  b.wire(pos, h, 'b');
+  let port = 'out';
+  for (let i = 0; i < (opts.blocks ?? 1); i++) {
+    const block = b.insert(transformerBlock.build({ dModel: D, heads: opts.heads ?? 2 }), { label: `Block ${i + 1}` });
+    b.wire([h, port], block, 'x');
+    h = block;
+    port = 'y';
+  }
+  const ln = b.insert(layerNorm.build({ dModel: D }));
+  b.wire([h, port], ln, 'x');
+  const head = b.insert(linear.build({ inFeatures: D, outFeatures: V }), { label: 'scores' });
+  b.wire([ln, 'y'], head, 'x');
+  const ce = b.add('softmax_cross_entropy');
+  b.wire([head, 'y'], ce, 'logits');
+  b.wire([text, 'y'], ce, 'targets');
+  const min = b.add('minimize');
+  b.wire(ce, min, 'loss');
+  const sample = b.add('sample', { temperature: 0.7 });
+  b.wire([head, 'y'], sample, 'logits');
+  b.wire(sample, text, 'next', 'feedback');
+  return b.build();
+}
+
+export const charTransformer: Example = {
+  slug: 'char-transformer',
+  title: 'A tiny transformer',
+  summary: 'Learns Shakespeare one character at a time, then writes its own.',
+  build: () => buildCharTransformer(),
+};
+
+export const examples: Example[] = [fitALine, xorMlp, mnistClassifier, charTransformer];
 
 export function getExample(slug: string): Example | undefined {
   return examples.find((e) => e.slug === slug);

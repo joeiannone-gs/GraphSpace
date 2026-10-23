@@ -309,3 +309,28 @@ export function drawMessage(ctx: CanvasRenderingContext2D, message: string, w: n
   const shown = lines.slice(0, 6);
   shown.forEach((l, i) => text(ctx, l, w / 2, h / 2 + (i - (shown.length - 1) / 2) * size * 1.25, size, color));
 }
+
+/** Text in a monospace box, wrapped; shows the end if it doesn't fit. */
+export function drawTextBlock(ctx: CanvasRenderingContext2D, content: string, w: number, h: number, c: DrawColors) {
+  const size = Math.max(10, Math.round(h * 0.07));
+  ctx.font = `${size}px ui-monospace, Menlo, Consolas, monospace`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = c.text;
+  const pad = w * 0.06;
+  const maxWidth = w - 2 * pad;
+  const lines: string[] = [];
+  for (const para of content.split('\n')) {
+    let line = '';
+    for (const ch of para) {
+      if (ctx.measureText(line + ch).width > maxWidth) {
+        lines.push(line);
+        line = ch;
+      } else line += ch;
+    }
+    lines.push(line);
+  }
+  const maxLines = Math.floor((h - 2 * pad) / (size * 1.2));
+  const shown = lines.slice(-maxLines);
+  shown.forEach((l, i) => ctx.fillText(l, pad, pad + i * size * 1.2));
+}

@@ -3,6 +3,7 @@ import { projectDocSchema } from '@/doc/schema';
 import { migrate } from '@/doc/migrate';
 import { emptyDoc, type ProjectDoc } from '@/doc/types';
 import { getExample } from '@/gallery/examples';
+import { exampleDoc } from '../examples';
 import { HttpError, idParam, json, readJson, requireUser, route } from '../http';
 import { createProject, deleteProject, getProject, getWorking, listProjects, renameProject, saveWorking } from '../repo/projects';
 import { setDefaultBranch } from '../repo/vcs';
@@ -32,8 +33,9 @@ export const create = route(
     let defaultTitle = 'Untitled project';
     if (body.from.kind === 'example') {
       const ex = getExample(body.from.slug);
-      if (!ex) throw new HttpError(404, 'No such example');
-      doc = ex.build();
+      const exDoc = exampleDoc(body.from.slug);
+      if (!ex || !exDoc) throw new HttpError(404, 'No such example');
+      doc = exDoc;
       forkedFrom = `gallery:${ex.slug}`;
       defaultTitle = ex.title;
     } else if (body.from.kind === 'doc') {

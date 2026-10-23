@@ -6,6 +6,7 @@ import * as linalg from './defs/linalg';
 import * as loss from './defs/loss';
 import * as math from './defs/math';
 import * as structure from './defs/structure';
+import * as text from './defs/text';
 import type { NodeDef, PortDef } from './types';
 
 const ALL: NodeDef<never>[] = [
@@ -42,6 +43,9 @@ const ALL: NodeDef<never>[] = [
   loss.argmax,
   loss.accuracy,
   loss.minimize,
+  text.textData,
+  text.embedding,
+  text.sample,
   display.peek,
   display.scatter,
   display.image,

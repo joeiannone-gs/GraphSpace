@@ -24,7 +24,7 @@ export function ScratchEditor({ doc, title, banner, headerRight }: { doc: Projec
         headerCenter={<span style={{ fontSize: 16 }}>{title}</span>}
         headerRight={headerRight}
         overlay={
-          <div className={styles.banner} style={{ top: 'auto', bottom: 60 }} role="note">
+          <div className={styles.banner} style={{ top: 'auto', bottom: 10, left: 10, transform: 'none', maxWidth: 'min(440px, calc(100% - 20px))' }} role="note">
             {banner}
           </div>
         }

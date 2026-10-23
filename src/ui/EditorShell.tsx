@@ -9,6 +9,7 @@ import { HelpButton } from './Help';
 import { Inspector } from './Inspector';
 import { Palette } from './Palette';
 import { RunBar } from './RunBar';
+import { TextOutput } from './TextOutput';
 import { Toast } from './Toast';
 import styles from './editor.module.css';
 
@@ -77,6 +78,7 @@ export function EditorShell({
               «
             </button>
           )}
+          <TextOutput />
           {overlay}
           <Toast />
         </main>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getExample } from '@/gallery/examples';
+import { exampleDoc } from '@/server/examples';
 import { currentUser } from '@/server/session';
 import { ForkButton } from '@/ui/ForkButton';
 import { ScratchEditor } from '@/ui/ScratchEditor';
@@ -16,7 +17,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
   const user = await currentUser();
   return (
     <ScratchEditor
-      doc={example.build()}
+      doc={exampleDoc(slug)!}
       title={example.title}
       headerRight={user ? <Link href="/">My GraphSpace</Link> : <Link href={`/login?next=/gallery/${slug}`}>Sign in</Link>}
       banner={

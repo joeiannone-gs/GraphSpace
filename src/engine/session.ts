@@ -40,6 +40,8 @@ export interface SessionSnapshot {
   nodes: Record<Id, NodeSnap>;
   /** How many trainable Parameters received a gradient from the loss in the last run. */
   trainable: number;
+  /** Text some nodes show (e.g. the text generated so far). */
+  texts: Record<Id, string>;
 }
 
 export interface SnapshotOptions {
@@ -322,6 +324,11 @@ export class Session {
       grads,
       nodes,
       trainable: this.trainableCount,
+      texts: Object.fromEntries(
+        [...this.state].flatMap(([id, st]) =>
+          st && typeof st === 'object' && typeof (st as { text?: unknown }).text === 'string' ? [[id, (st as { text: string }).text]] : [],
+        ),
+      ),
     };
   }
 

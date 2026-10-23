@@ -172,7 +172,255 @@ export const mlp: BuiltinGroup = {
     }, { inFeatures, hidden, outFeatures }),
 };
 
-export const builtinGroups: BuiltinGroup[] = [linear, mlp, mse, softmax, logSoftmax, crossEntropy];
+function layerNormBody(b: DocBuilder, dModel: number, x: string) {
+  const mean = b.add('mean', { axes: [-1], keepdims: true }, { label: 'mean' });
+  b.wire(x, mean, 'x');
+  const centered = b.add('subtract', {}, { label: 'x − mean' });
+  b.wire(x, centered, 'a');
+  b.wire(mean, centered, 'b');
+  const sq = b.add('square');
+  b.wire(centered, sq, 'x');
+  const variance = b.add('mean', { axes: [-1], keepdims: true }, { label: 'variance' });
+  b.wire(sq, variance, 'x');
+  const eps = b.add('value', { value: { shape: [], data: [1e-5] } }, { label: 'ε' });
+  const padded = b.add('add');
+  b.wire(variance, padded, 'a');
+  b.wire(eps, padded, 'b');
+  const std = b.add('sqrt', {}, { label: 'std' });
+  b.wire(padded, std, 'x');
+  const norm = b.add('divide', {}, { label: 'normalized' });
+  b.wire(centered, norm, 'a');
+  b.wire(std, norm, 'b');
+  const gamma = b.add('parameter', { shape: [dModel], init: 'ones' }, { label: 'γ' });
+  const beta = b.add('parameter', { shape: [dModel], init: 'zeros' }, { label: 'β' });
+  const scaled = b.add('multiply');
+  b.wire(norm, scaled, 'a');
+  b.wire(gamma, scaled, 'b');
+  const shifted = b.add('add');
+  b.wire(scaled, shifted, 'a');
+  b.wire(beta, shifted, 'b');
+  return shifted;
+}
+
+export const layerNorm: BuiltinGroup = {
+  id: 'layer_norm',
+  label: 'LayerNorm',
+  explanation: 'Rescales each vector to mean 0 and spread 1 (then a learned scale γ and shift β). Keeps values in a healthy range in deep networks.',
+  version: 1,
+  fields: [{ key: 'dModel', label: 'Size', kind: 'int', min: 1 }],
+  defaults: { dModel: 16 },
+  build: ({ dModel }) =>
+    make(
+      'layer_norm',
+      'LayerNorm',
+      1,
+      (b) => {
+        const x = b.input('x');
+        b.wire(layerNormBody(b, dModel, x), b.output('y'), 'in');
+      },
+      { dModel },
+    ),
+};
+
+export const attention: BuiltinGroup = {
+  id: 'attention',
+  label: 'Attention',
+  explanation:
+    'Self-attention (one head): every position makes a query, a key and a value. Each position looks back at earlier positions whose keys match its query (softmax of `q·k / √d`, future hidden by a causal mask) and takes a weighted mix of their values.',
+  version: 1,
+  fields: [
+    { key: 'dModel', label: 'Input size', kind: 'int', min: 1 },
+    { key: 'dHead', label: 'Head size', kind: 'int', min: 1 },
+  ],
+  defaults: { dModel: 16, dHead: 16 },
+  build: ({ dModel, dHead }) =>
+    make(
+      'attention',
+      'Attention',
+      1,
+      (b) => {
+        const x = b.input('x');
+        const proj = (label: string) => {
+          const w = b.add('parameter', { shape: [dModel, dHead], init: 'glorot' }, { label: `W${label}` });
+          const mm = b.add('matmul', {}, { label });
+          b.wire(x, mm, 'a');
+          b.wire(w, mm, 'b');
+          return mm;
+        };
+        const q = proj('q');
+        const k = proj('k');
+        const v = proj('v');
+        const kt = b.add('transpose', {}, { label: 'kᵀ' });
+        b.wire(k, kt, 'x');
+        const scores = b.add('matmul', {}, { label: 'q · kᵀ' });
+        b.wire(q, scores, 'a');
+        b.wire(kt, scores, 'b');
+        const scale = b.add('value', { value: { shape: [], data: [1 / Math.sqrt(dHead)] } }, { label: '1/√d' });
+        const scaled = b.add('multiply');
+        b.wire(scores, scaled, 'a');
+        b.wire(scale, scaled, 'b');
+        const masked = b.add('causal_mask');
+        b.wire(scaled, masked, 'x');
+        const weights = b.insert(softmax.build({}), { label: 'weights' });
+        b.wire(masked, weights, 'x');
+        const mixed = b.add('matmul', {}, { label: 'weights · v' });
+        b.wire([weights, 'out'], mixed, 'a');
+        b.wire(v, mixed, 'b');
+        b.wire(mixed, b.output('y'), 'in');
+      },
+      { dModel, dHead },
+    ),
+};
+
+export const multiHeadAttention: BuiltinGroup = {
+  id: 'multi_head_attention',
+  label: 'Multi-Head Attention',
+  explanation: 'Several attention heads side by side, each looking for different patterns; their outputs are joined and mixed by a final matrix.',
+  version: 1,
+  fields: [
+    { key: 'dModel', label: 'Size', kind: 'int', min: 1 },
+    { key: 'heads', label: 'Heads', kind: 'int', min: 1, max: 8 },
+  ],
+  defaults: { dModel: 16, heads: 2 },
+  build: ({ dModel, heads }) =>
+    make(
+      'multi_head_attention',
+      'Multi-Head Attention',
+      1,
+      (b) => {
+        const h = Math.max(1, Math.min(8, heads));
+        const dHead = Math.max(1, Math.floor(dModel / h));
+        const x = b.input('x');
+        const outs = Array.from({ length: h }, (_, i) => {
+          const head = b.insert(attention.build({ dModel, dHead }), { label: `Head ${i + 1}` });
+          b.wire(x, head, 'x');
+          return head;
+        });
+        let joined: string = outs[0];
+        let joinedPort = 'y';
+        if (h > 1) {
+          const cat = b.add('concat', { count: h, axis: -1 });
+          outs.forEach((o, i) => b.wire([o, 'y'], cat, `in${i}`));
+          joined = cat;
+          joinedPort = 'out';
+        }
+        const wo = b.add('parameter', { shape: [dHead * h, dModel], init: 'glorot' }, { label: 'Wo' });
+        const mixed = b.add('matmul');
+        b.wire([joined, joinedPort], mixed, 'a');
+        b.wire(wo, mixed, 'b');
+        b.wire(mixed, b.output('y'), 'in');
+      },
+      { dModel, heads },
+    ),
+};
+
+export const feedForward: BuiltinGroup = {
+  id: 'feed_forward',
+  label: 'Feed Forward',
+  explanation: 'The per-position “thinking” layer of a transformer: widen (Linear), GELU, and narrow back (Linear).',
+  version: 1,
+  fields: [
+    { key: 'dModel', label: 'Size', kind: 'int', min: 1 },
+    { key: 'hidden', label: 'Hidden size', kind: 'int', min: 1 },
+  ],
+  defaults: { dModel: 16, hidden: 64 },
+  build: ({ dModel, hidden }) =>
+    make(
+      'feed_forward',
+      'Feed Forward',
+      1,
+      (b) => {
+        const x = b.input('x');
+        const l1 = b.insert(linear.build({ inFeatures: dModel, outFeatures: hidden }));
+        b.wire(x, l1, 'x');
+        const act = b.add('gelu');
+        b.wire([l1, 'y'], act, 'x');
+        const l2 = b.insert(linear.build({ inFeatures: hidden, outFeatures: dModel }));
+        b.wire(act, l2, 'x');
+        b.wire([l2, 'y'], b.output('y'), 'in');
+      },
+      { dModel, hidden },
+    ),
+};
+
+export const addNorm: BuiltinGroup = {
+  id: 'add_norm',
+  label: 'Add & Normalize',
+  explanation: 'A residual connection followed by LayerNorm: `LayerNorm(x + sublayer)`. The “shortcut” lets information and gradients skip past the sublayer.',
+  version: 1,
+  fields: [{ key: 'dModel', label: 'Size', kind: 'int', min: 1 }],
+  defaults: { dModel: 16 },
+  build: ({ dModel }) =>
+    make(
+      'add_norm',
+      'Add & Normalize',
+      1,
+      (b) => {
+        const x = b.input('x', 0);
+        const sub = b.input('sublayer', 1);
+        const sum = b.add('add');
+        b.wire(x, sum, 'a');
+        b.wire(sub, sum, 'b');
+        const ln = b.insert(layerNorm.build({ dModel }));
+        b.wire(sum, ln, 'x');
+        b.wire([ln, 'y'], b.output('y'), 'in');
+      },
+      { dModel },
+    ),
+};
+
+export const transformerBlock: BuiltinGroup = {
+  id: 'transformer_block',
+  label: 'Transformer Block',
+  explanation:
+    'One layer of a transformer: LayerNorm → Multi-Head Attention (added back to its input), then LayerNorm → Feed Forward (added back again). Stack blocks to make the model deeper.',
+  version: 1,
+  fields: [
+    { key: 'dModel', label: 'Size', kind: 'int', min: 1 },
+    { key: 'heads', label: 'Heads', kind: 'int', min: 1, max: 8 },
+  ],
+  defaults: { dModel: 16, heads: 2 },
+  build: ({ dModel, heads }) =>
+    make(
+      'transformer_block',
+      'Transformer Block',
+      1,
+      (b) => {
+        const x = b.input('x');
+        const ln1 = b.insert(layerNorm.build({ dModel }));
+        b.wire(x, ln1, 'x');
+        const att = b.insert(multiHeadAttention.build({ dModel, heads }));
+        b.wire([ln1, 'y'], att, 'x');
+        const r1 = b.add('add', {}, { label: 'residual' });
+        b.wire(x, r1, 'a');
+        b.wire([att, 'y'], r1, 'b');
+        const ln2 = b.insert(layerNorm.build({ dModel }));
+        b.wire(r1, ln2, 'x');
+        const ff = b.insert(feedForward.build({ dModel, hidden: dModel * 4 }));
+        b.wire([ln2, 'y'], ff, 'x');
+        const r2 = b.add('add', {}, { label: 'residual' });
+        b.wire(r1, r2, 'a');
+        b.wire([ff, 'y'], r2, 'b');
+        b.wire(r2, b.output('y'), 'in');
+      },
+      { dModel, heads },
+    ),
+};
+
+export const builtinGroups: BuiltinGroup[] = [
+  linear,
+  mlp,
+  mse,
+  softmax,
+  logSoftmax,
+  crossEntropy,
+  layerNorm,
+  attention,
+  multiHeadAttention,
+  feedForward,
+  addNorm,
+  transformerBlock,
+];
 
 export function getBuiltin(id: string): BuiltinGroup | undefined {
   return builtinGroups.find((g) => g.id === id);

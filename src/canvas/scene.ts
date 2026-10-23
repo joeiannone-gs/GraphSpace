@@ -7,7 +7,7 @@ import { Container, FederatedPointerEvent } from 'pixi.js';
 import type { Id, ProjectDoc } from '@/doc/types';
 import type { SessionSnapshot, TensorSnap } from '@/engine/session';
 import { getDef, portsOf } from '@/nodes/registry';
-import { DrawColors, drawImages, drawMessage, drawScatter, drawSparkline, drawTensor, formatNumber } from './displays/draw';
+import { DrawColors, drawImages, drawMessage, drawScatter, drawSparkline, drawTensor, drawTextBlock, formatNumber } from './displays/draw';
 import { NODE_RADIUS, fitInside, groupRadius, portOffsets } from './geometry';
 import type { CanvasTheme } from './theme';
 import { EdgeView } from './views/EdgeView';
@@ -358,6 +358,10 @@ export class Scene {
         return v
           ? (ctx, w, h) => (drawSparkline(ctx, history, v.data[0], node.type === 'accuracy' ? `accuracy ${formatNumber(v.data[0] * 100)}%` : '', w, h, c), true)
           : null;
+      }
+      case 'text': {
+        const content = snap.texts[id];
+        return content ? (ctx, w, h) => (drawTextBlock(ctx, content, w, h, c), true) : null;
       }
       default:
         return null;
