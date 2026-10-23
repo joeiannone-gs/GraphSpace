@@ -38,6 +38,7 @@ export class NodeView {
   private iconUrl: string | undefined;
   model: NodeModel;
   selected = false;
+  highlight: 'added' | 'changed' | null = null;
   status: NodeStatus = 'idle';
   error: NodeError | undefined;
   onPortDown: ((kind: 'in' | 'out', port: string, e: FederatedPointerEvent) => void) | null = null;
@@ -122,6 +123,7 @@ export class NodeView {
       this.status === 'error' ? t.error : this.status === 'inner-error' ? t.error : this.status === 'blocked' ? t.blocked : base;
     g.circle(0, 0, radius).stroke({ color: statusColor, width: this.isGroup ? 10 : 8, alpha: this.status === 'blocked' ? 0.6 : 1 });
     if (this.selected) g.circle(0, 0, radius + 26).stroke({ color: t.selected, width: 14 });
+    if (this.highlight) g.circle(0, 0, radius + 60).stroke({ color: this.highlight === 'added' ? 0x4caf50 : 0xffb300, width: 24, alpha: 0.9 });
     if (node.type === 'input' || node.type === 'output') {
       g.circle(0, 0, radius * 0.82).stroke({ color: base, width: 4, alpha: 0.5 });
     }
@@ -203,6 +205,12 @@ export class NodeView {
   setSelected(selected: boolean) {
     if (selected === this.selected) return;
     this.selected = selected;
+    this.drawRing();
+  }
+
+  setHighlight(h: 'added' | 'changed' | null) {
+    if (h === this.highlight) return;
+    this.highlight = h;
     this.drawRing();
   }
 

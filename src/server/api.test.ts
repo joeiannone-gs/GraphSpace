@@ -8,6 +8,7 @@ import { extractSubtree } from '@/doc/clone';
 import * as auth from './api/auth';
 import * as library from './api/library';
 import * as projects from './api/projects';
+import * as vcs from './api/vcs';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-api-'));
 const ORIGIN = 'http://gs.test';
@@ -120,5 +121,48 @@ describe('node library', () => {
     expect((await (await call(library.list, 'GET', { cookie: dave })).json()).nodes).toEqual([]);
     const broken = { ...subtree, root: 'missing' };
     expect((await call(library.create, 'POST', { cookie: carol, body: { name: 'x', subtree: broken } })).status).toBe(400);
+  });
+});
+
+describe('version control', () => {
+  it('commits snapshots, branches from a commit, and keeps branches independent', async () => {
+    const erin = await signUp('erin@x.io');
+    const mallory = await signUp('mallory@x.io');
+    const created = await (await call(projects.create, 'POST', { cookie: erin, body: { from: { kind: 'example', slug: 'fit-a-line' } } })).json();
+    const pid = created.id;
+    const main = created.branchId;
+    const w1 = await (await call(projects.getWorkingDoc, 'GET', { cookie: erin, params: { pid, bid: main } })).json();
+
+    // A commit must include the latest save.
+    expect((await call(vcs.commit, 'POST', { cookie: erin, params: { pid, bid: main }, body: { message: 'first', expectVersion: 0 } })).status).toBe(409);
+    const c1 = (await (await call(vcs.commit, 'POST', { cookie: erin, params: { pid, bid: main }, body: { message: 'first', expectVersion: w1.version } })).json()).commit;
+    expect(c1.id).toMatch(/^[0-9a-f]{12}$/);
+    expect(c1.parentId).toBeNull();
+
+    const edited = { ...w1.doc, info: { description: 'second version' } };
+    const v2 = (await (await call(projects.putWorkingDoc, 'PUT', { cookie: erin, params: { pid, bid: main }, body: { doc: edited, baseVersion: w1.version } })).json()).version;
+    const c2 = (await (await call(vcs.commit, 'POST', { cookie: erin, params: { pid, bid: main }, body: { message: 'second', expectVersion: v2 } })).json()).commit;
+    expect(c2.parentId).toBe(c1.id);
+
+    const branch = (await (await call(vcs.newBranch, 'POST', { cookie: erin, params: { pid }, body: { name: 'experiment', fromCommitId: c1.id } })).json()).branch;
+    const bw = await (await call(projects.getWorkingDoc, 'GET', { cookie: erin, params: { pid, bid: branch.id } })).json();
+    expect(bw.doc.info.description).toBe(w1.doc.info.description);
+    const c3 = (await (await call(vcs.commit, 'POST', { cookie: erin, params: { pid, bid: branch.id }, body: { message: 'on branch', expectVersion: bw.version } })).json()).commit;
+    expect(c3.parentId).toBe(c1.id);
+
+    const hist = await (await call(vcs.history, 'GET', { cookie: erin, params: { pid } })).json();
+    expect(hist.commits.map((c: { message: string }) => c.message)).toEqual(['first', 'second', 'on branch']);
+    expect(hist.branches.map((b: { name: string }) => b.name)).toEqual(['main', 'experiment']);
+    const old = await (await call(vcs.commitDoc, 'GET', { cookie: erin, params: { pid, cid: c2.id } })).json();
+    expect(old.doc.info.description).toBe('second version');
+
+    expect((await call(vcs.newBranch, 'POST', { cookie: erin, params: { pid }, body: { name: 'experiment', fromCommitId: c1.id } })).status).toBe(409);
+    expect((await call(vcs.history, 'GET', { cookie: mallory, params: { pid } })).status).toBe(404);
+    expect((await call(vcs.commitDoc, 'GET', { cookie: mallory, params: { pid, cid: c1.id } })).status).toBe(404);
+
+    expect((await call(vcs.removeBranch, 'DELETE', { cookie: erin, params: { pid, bid: main } })).status).toBe(200);
+    expect((await call(vcs.removeBranch, 'DELETE', { cookie: erin, params: { pid, bid: branch.id } })).status).toBe(400);
+    const info = await (await call(projects.get, 'GET', { cookie: erin, params: { pid } })).json();
+    expect(info.project.defaultBranchId).toBe(branch.id);
   });
 });

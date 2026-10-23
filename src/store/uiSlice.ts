@@ -3,6 +3,14 @@ import type { Id } from '@/doc/types';
 
 export type Theme = 'dark' | 'light';
 
+export interface DiffHighlight {
+  /** What the current document is compared with, e.g. "commit 3e7f664". */
+  against: string;
+  added: Id[];
+  changed: Id[];
+  removed: string[];
+}
+
 export interface UiState {
   selectedNodes: Id[];
   selectedEdges: Id[];
@@ -13,6 +21,7 @@ export interface UiState {
   leftOpen: boolean;
   rightOpen: boolean;
   toast: string | null;
+  diff: DiffHighlight | null;
 }
 
 const initialState: UiState = {
@@ -24,6 +33,7 @@ const initialState: UiState = {
   leftOpen: true,
   rightOpen: true,
   toast: null,
+  diff: null,
 };
 
 const uiSlice = createSlice({
@@ -69,6 +79,9 @@ const uiSlice = createSlice({
     },
     showToast(state, a: PayloadAction<string | null>) {
       state.toast = a.payload;
+    },
+    setDiff(state, a: PayloadAction<DiffHighlight | null>) {
+      state.diff = a.payload;
     },
   },
 });

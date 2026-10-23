@@ -10,27 +10,36 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'GraphSpace' };
 
-function load(userId: string, projectId: string) {
+function load(userId: string, projectId: string, branch: string | undefined) {
   const db = getDb();
   try {
     const project = getProject(db, userId, projectId);
-    return { project, working: getWorking(db, userId, projectId, project.defaultBranchId) };
+    const branchId = project.branches.some((b) => b.id === branch) ? branch! : project.defaultBranchId;
+    return { project, branchId, working: getWorking(db, userId, projectId, branchId) };
   } catch (err) {
     if (err instanceof HttpError && err.status === 404) notFound();
     throw err;
   }
 }
 
-export default async function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
+export default async function ProjectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ branch?: string }>;
+}) {
   const { projectId } = await params;
+  const { branch } = await searchParams;
   const user = await currentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/p/${projectId}`)}`);
-  const { project, working } = load(user.id, projectId);
+  const { project, branchId, working } = load(user.id, projectId, branch);
   return (
     <ProjectEditor
       user={{ email: user.email, displayName: user.displayName }}
       project={{ id: project.id, title: project.title }}
-      branchId={project.defaultBranchId}
+      key={branchId}
+      branchId={branchId}
       initialDoc={working.doc}
       initialVersion={working.version}
     />

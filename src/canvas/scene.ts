@@ -18,6 +18,7 @@ export interface SceneUi {
   selectedEdges: readonly Id[];
   scope: Id | null;
   showGradients: boolean;
+  diff: { added: readonly Id[]; changed: readonly Id[] } | null;
 }
 
 const BOUNDARY_RADIUS = NODE_RADIUS * 0.55;
@@ -157,7 +158,12 @@ export class Scene {
 
     const selectedNodes = new Set(ui.selectedNodes);
     const selectionChanged = !prevUi || prevUi.selectedEdges !== ui.selectedEdges || prevUi.showGradients !== ui.showGradients;
-    for (const [id, view] of this.nodes) view.setSelected(selectedNodes.has(id));
+    const added = new Set(ui.diff?.added ?? []);
+    const changedInDiff = new Set(ui.diff?.changed ?? []);
+    for (const [id, view] of this.nodes) {
+      view.setSelected(selectedNodes.has(id));
+      view.setHighlight(added.has(id) ? 'added' : changedInDiff.has(id) ? 'changed' : null);
+    }
 
     for (const edge of Object.values(doc.edges)) {
       let view = this.edges.get(edge.id);

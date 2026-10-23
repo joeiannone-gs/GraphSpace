@@ -560,3 +560,16 @@
   font-size: 13px;
   z-index: 2;
 }
+
+.commitMessage {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg);
+  color: var(--gs-text);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}

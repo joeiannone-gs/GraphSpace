@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { ProjectDoc } from '@/doc/types';
 import { api } from '@/lib/api';
+import { CommitHistory } from './CommitHistory';
 import { EditorProvider } from './EditorContext';
 import { EditorShell } from './EditorShell';
 import { LibraryProvider } from './LibraryContext';
@@ -70,6 +71,16 @@ function Editor({ user, project, branchId, initialDoc, initialVersion }: Project
         </>
       }
       left={<MyGraphSpace currentProjectId={project.id} refreshKey={refreshKey} />}
+      right={
+        <CommitHistory
+          projectId={project.id}
+          branchId={branchId}
+          flush={async () => {
+            await actions.current.flush();
+            return actions.current.version();
+          }}
+        />
+      }
       overlay={
         <>
           <Tabs current={{ id: project.id, title }} />

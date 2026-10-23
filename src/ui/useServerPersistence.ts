@@ -21,10 +21,11 @@ export function useServerPersistence(opts: { projectId: string; branchId: string
   const store = useAppStore();
   const [status, setStatus] = useState<SaveStatus>('saved');
   const [conflict, setConflict] = useState<Conflict | null>(null);
-  const actions = useRef<{ keepMine(): void; loadTheirs(): void; flush(): Promise<void> }>({
+  const actions = useRef<{ keepMine(): void; loadTheirs(): void; flush(): Promise<void>; version(): number }>({
     keepMine: () => undefined,
     loadTheirs: () => undefined,
     flush: async () => undefined,
+    version: () => 0,
   });
   const { projectId, branchId, initialDoc, initialVersion } = opts;
 
@@ -116,7 +117,11 @@ export function useServerPersistence(opts: { projectId: string; branchId: string
         setConflict(null);
         setStatus('saved');
       },
-      flush: () => save(),
+      flush: async () => {
+        clearTimeout(timer);
+        await save();
+      },
+      version: () => version,
     };
 
     return () => {

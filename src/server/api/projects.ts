@@ -5,6 +5,7 @@ import { emptyDoc, type ProjectDoc } from '@/doc/types';
 import { getExample } from '@/gallery/examples';
 import { HttpError, idParam, json, readJson, requireUser, route } from '../http';
 import { createProject, deleteProject, getProject, getWorking, listProjects, renameProject, saveWorking } from '../repo/projects';
+import { setDefaultBranch } from '../repo/vcs';
 
 const title = z.string().trim().min(1).max(120);
 
@@ -50,8 +51,11 @@ export const get = route((ctx) => json({ project: getProject(ctx.db, requireUser
 
 export const update = route(
   async (ctx) => {
-    const body = await readJson(ctx.req, z.object({ title }));
-    renameProject(ctx.db, requireUser(ctx).id, idParam(ctx.params.pid), body.title);
+    const body = await readJson(ctx.req, z.object({ title: title.optional(), defaultBranchId: z.string().max(64).optional() }));
+    const user = requireUser(ctx);
+    const pid = idParam(ctx.params.pid);
+    if (body.title) renameProject(ctx.db, user.id, pid, body.title);
+    if (body.defaultBranchId) setDefaultBranch(ctx.db, user.id, pid, idParam(body.defaultBranchId));
     return json({ ok: true });
   },
   { auth: true },

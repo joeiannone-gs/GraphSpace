@@ -241,8 +241,9 @@ export function drawScatter(
   ctx.strokeStyle = c.muted;
   ctx.lineWidth = 1;
   ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
-  const r = Math.max(1.5, Math.min(w, h) * 0.008);
   const n = Math.min(xs.length, ys.length);
+  // Few points (e.g. XOR) get big dots; thousands get small ones.
+  const r = Math.min(w, h) * (n <= 20 ? 0.035 : n <= 200 ? 0.015 : 0.008);
   for (let i = 0; i < n; i++) {
     ctx.fillStyle = classes ? CLASS_COLORS[classes[i] % CLASS_COLORS.length] : c.accent;
     ctx.globalAlpha = 0.7;
@@ -270,10 +271,10 @@ export function drawScatter(
 
 /** Loss (or any scalar) over time, with the latest value. */
 export function drawSparkline(ctx: CanvasRenderingContext2D, values: number[], latest: number | null, label: string, w: number, h: number, c: DrawColors) {
-  const top = h * 0.3;
+  const top = h * 0.36;
   const s = latest === null ? '—' : formatNumber(latest);
-  text(ctx, label, w / 2, h * 0.08, h * 0.08, c.muted);
-  text(ctx, s, w / 2, h * 0.2, fitText(ctx, s, w * 0.9, h * 0.14), c.text);
+  if (label) text(ctx, label, w / 2, h * 0.07, h * 0.09, c.muted);
+  text(ctx, s, w / 2, h * 0.22, fitText(ctx, s, w * 0.9, h * 0.2), c.text);
   if (values.length < 2) return;
   const pad = w * 0.06;
   const finite = values.filter(Number.isFinite);
