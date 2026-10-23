@@ -50,7 +50,7 @@ export const xorMlp: Example = {
     b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.05, steps: 400 };
     b.doc.info.description = 'Four points, two classes. Open the **MLP** group to see its two Linear layers and the ReLU between them.';
     const data = b.add('dataset', { source: 'xor' }, { label: 'XOR' });
-    const net = b.insert(mlp.build({ inFeatures: 2, hidden: 8, outFeatures: 2 }));
+    const net = b.insert(mlp.build({ inFeatures: 2, hidden: 16, outFeatures: 2 }));
     b.wire([data, 'x'], net, 'x');
     const ce = b.add('softmax_cross_entropy');
     b.wire([net, 'y'], ce, 'logits');

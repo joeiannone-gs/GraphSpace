@@ -158,7 +158,7 @@ export const mlp: BuiltinGroup = {
     { key: 'hidden', label: 'Hidden units', kind: 'int', min: 1 },
     { key: 'outFeatures', label: 'Outputs', kind: 'int', min: 1 },
   ],
-  defaults: { inFeatures: 2, hidden: 8, outFeatures: 2 },
+  defaults: { inFeatures: 2, hidden: 16, outFeatures: 2 },
   build: ({ inFeatures, hidden, outFeatures }) =>
     make('mlp', 'MLP', 1, (b) => {
       const x = b.input('x');

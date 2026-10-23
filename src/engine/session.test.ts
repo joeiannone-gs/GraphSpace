@@ -49,7 +49,7 @@ describe('training converges', () => {
     const b = new DocBuilder();
     b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.05 };
     const data = b.add('dataset', { source: 'xor' });
-    const net = b.insert(mlp.build({ inFeatures: 2, hidden: 8, outFeatures: 2 }));
+    const net = b.insert(mlp.build({ inFeatures: 2, hidden: 16, outFeatures: 2 }));
     b.wire([data, 'x'], net, 'x');
     const ce = b.add('softmax_cross_entropy');
     b.wire([net, 'y'], ce, 'logits');
