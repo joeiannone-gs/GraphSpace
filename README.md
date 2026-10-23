@@ -24,17 +24,24 @@
 
 ## 🧩 Overview
 
-**GraphSpace** is a **visual development environment** for effortlessly building, exploring, and understanding **machine learning systems**.  
-Build real, working ML architectures visually.
+**GraphSpace** is a visual environment for **learning how machine learning works** by building it.
+Models are graphs: drag in nodes, connect them, and every value, parameter and gradient is shown
+live as the model trains, entirely in your browser.
 
 ---
 
 ## 🚀 Features
 
-- **Visual model builder** — Connect components to form real, executable ML models and pipelines.  
-- **Live data visualization** — See parameter updates, dataflow, and gradients in real time.  
-- **Integrated version control** — Every model change can be tracked with a full-featured and visual VCS.
-  
+- **Build real models visually**: from adding two numbers to an MLP, an MNIST classifier, a
+  character-level transformer and a toy diffusion model. Layers like Linear, Attention, LayerNorm or
+  Transformer Block are groups made of simple nodes; double-click to step inside any of them.
+- **See everything**: tensors, images, scatter plots, loss curves and the gradient flowing back from
+  the loss, updated while training runs. Shape mistakes are explained on the node that made them.
+- **Guided lessons**: six lessons with step-by-step instructions and automatic checks (graph
+  structure, values, and results after training), hints and worked solutions.
+- **Version control**: commit checkpoints, branch from any commit, compare with now and restore.
+- **Share and fork**: read-only links anyone can open and run, plus an example gallery.
+
 ---
 
 ## 🖥️ Visual Walkthrough
@@ -111,7 +118,9 @@ npm run e2e                                     # browser tests (Playwright)
 | `src/canvas`, `src/ui`, `src/store` | pixi.js editor, panels, Redux store |
 | `src/server` | SQLite, auth, data access |
 | `public/datasets` | Bundled datasets (2-D points, 200 MNIST digits) |
-| `legacy/` | The previous Python/TensorFlow server and React frontend, kept for reference while it is ported |
+| `src/lessons`, `src/gallery`, `src/library` | Lessons, example projects, built-in groups (layers and losses) |
+| `deploy/` | One-instance AWS deployment (Pulumi, Caddy, systemd, S3 backups); see `deploy/README.md` |
+| `legacy/` | The previous Python/TensorFlow server and React frontend, kept for reference |
 
 <div align="center">
   <sub>Built with ❤️ by the GraphSpace Team</sub>
