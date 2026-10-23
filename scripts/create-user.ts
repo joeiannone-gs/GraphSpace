@@ -1,6 +1,8 @@
 /**
- * Create an account without an invite code (run on the server):
- *   DATABASE_PATH=/var/lib/graphspace/gs.db npx tsx scripts/create-user.ts student@example.com "Student Name"
+ * Create an account without an invite code.
+ *   Development:  npx tsx scripts/create-user.ts student@example.com "Student Name"
+ *   On a server:  DATABASE_PATH=/var/lib/graphspace/gs.db node cli/create-user.mjs student@example.com "Student Name"
+ *                 (the release bundles this script as cli/create-user.mjs)
  * The password is read from GS_PASSWORD or prompted for.
  */
 import { createInterface } from 'node:readline/promises';

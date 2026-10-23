@@ -52,7 +52,8 @@ through SSM: it unpacks the release, switches the `current` symlink, restarts th
 ## Day to day
 
 - **Create accounts without the invite code:** open a Session Manager shell and run
-  `cd /opt/graphspace/current && sudo -u graphspace DATABASE_PATH=/var/lib/graphspace/gs.db npx tsx scripts/create-user.ts student@example.com "Name"`.
+  `cd /opt/graphspace/current && sudo -u graphspace env DATABASE_PATH=/var/lib/graphspace/gs.db node cli/create-user.mjs student@example.com "Name"`
+  (it asks for the password).
   (Or share the invite code; change it with `pulumi config set --secret inviteCode … && pulumi up`, then redeploy.)
 - **Logs:** `journalctl -u graphspace -f` and `journalctl -u caddy -f`.
 - **Backups:** `graphspace-backup.timer` runs nightly at 03:17 UTC and copies a consistent snapshot
