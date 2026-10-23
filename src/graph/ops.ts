@@ -260,3 +260,21 @@ export function setDirection(doc: ProjectDoc, direction: ProjectDoc['layout']['d
 export function childrenOf(doc: ProjectDoc, parent: Id | null): DocNode[] {
   return Object.values(doc.nodes).filter((n) => n.parent === parent);
 }
+
+/**
+ * Swap a group's contents for a freshly built version (e.g. a Linear layer with new sizes).
+ * The group keeps its id, position and label, so outside connections to ports that still exist survive.
+ */
+export function replaceGroupContents(doc: ProjectDoc, groupId: Id, sub: Subtree) {
+  const group = doc.nodes[groupId];
+  if (!group || group.type !== 'composite') return;
+  removeNodes(doc, [...descendants(doc, groupId)]);
+  for (const n of Object.values(sub.nodes)) {
+    if (n.id === sub.root) continue;
+    doc.nodes[n.id] = { ...structuredClone(n), parent: n.parent === sub.root ? groupId : n.parent };
+  }
+  Object.assign(doc.edges, structuredClone(sub.edges));
+  const root = sub.nodes[sub.root];
+  if (root.source) group.source = structuredClone(root.source);
+  pruneDanglingEdges(doc, groupId);
+}

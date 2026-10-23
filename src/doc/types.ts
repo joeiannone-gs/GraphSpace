@@ -19,6 +19,8 @@ export interface NodeSource {
   kind: 'builtin' | 'user';
   id: string;
   version: number;
+  /** Settings a built-in group was built with (e.g. layer sizes), so it can be rebuilt. */
+  params?: Record<string, number>;
 }
 
 export interface DocNode {

@@ -23,7 +23,12 @@ const nodeSchema = z.object({
   note: z.string().max(20_000).optional(),
   params: z.record(z.string(), z.unknown()),
   source: z
-    .object({ kind: z.enum(['builtin', 'user']), id: z.string().max(80), version: z.number().int() })
+    .object({
+      kind: z.enum(['builtin', 'user']),
+      id: z.string().max(80),
+      version: z.number().int(),
+      params: z.record(z.string(), z.number()).optional(),
+    })
     .optional(),
 });
 

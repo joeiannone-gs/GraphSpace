@@ -16,9 +16,15 @@ export interface BuiltinGroup {
   build(params: Record<string, number>): Subtree;
 }
 
-function make(id: string, label: string, version: number, body: (b: DocBuilder) => void): Subtree {
+function make(
+  id: string,
+  label: string,
+  version: number,
+  body: (b: DocBuilder) => void,
+  params?: Record<string, number>,
+): Subtree {
   const b = new DocBuilder();
-  const root = b.group(label, body, { source: { kind: 'builtin', id, version } });
+  const root = b.group(label, body, { source: { kind: 'builtin', id, version, ...(params ? { params } : {}) } });
   return extractSubtree(b.build(), root);
 }
 
@@ -44,7 +50,7 @@ export const linear: BuiltinGroup = {
       b.wire(mm, add, 'a');
       b.wire(bias, add, 'b');
       b.wire(add, b.output('y'), 'in');
-    }),
+    }, { inFeatures, outFeatures }),
 };
 
 export const mse: BuiltinGroup = {
@@ -163,7 +169,7 @@ export const mlp: BuiltinGroup = {
       const l2 = b.insert(linear.build({ inFeatures: hidden, outFeatures }));
       b.wire(act, l2, 'x');
       b.wire([l2, 'y'], b.output('y'), 'in');
-    }),
+    }, { inFeatures, hidden, outFeatures }),
 };
 
 export const builtinGroups: BuiltinGroup[] = [linear, mlp, mse, softmax, logSoftmax, crossEntropy];
