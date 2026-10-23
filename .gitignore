@@ -1,37 +1,36 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
 
-# .vscode
-# users.db
-aws/
-venv
-.venv
+# Tests
+test-results/
+playwright-report/
+coverage/
 
+# Local data
+data/
+*.db
+*.db-wal
+*.db-shm
 
-# Compute Server
-computeserver/.env
-computeserver/users.db
-computeserver/server/EBS/users/*
-!computeserver/server/EBS/users/test_user
-computeserver/server/protos/
-*.pyc
-*.pyo
-__pycache__/
-
-
-
-# Frontend
-frontend/node_modules/
-frontend/.next/
-frontend/app/proto/compiled.d.ts
-frontend/app/proto/compiled.js
-
-# Secrets and local state (never commit)
+# Secrets (never commit)
 *.pem
 *.key
 id_rsa*
 .env
 .env.*
 !.env.example
-*.db
-*.db-wal
-*.db-shm
+
+# Editors and OS
 .DS_Store
+.vscode/
+.idea/
+
+# Python leftovers in legacy/
+__pycache__/
+*.pyc
+venv/
+.venv/

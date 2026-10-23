@@ -80,23 +80,39 @@ Build real, working ML architectures visually.
 </table>
 ---
 
-## ⚙️ Installation
+## ⚙️ Development
 
-Clone the repository and start both backend and frontend servers:
+GraphSpace is a single Next.js app. Models are built and trained in the browser (a small TypeScript tensor and autodiff engine running in a Web Worker); the server only stores accounts, projects, version history and lesson progress in SQLite.
+
+Requires Node 24+.
 
 ```bash
-# Clone the repository
 git clone https://github.com/joeiannone-gs/GraphSpace
-cd graphspace
-
-# Start the compute server
-sudo python3.12 -m computeserver.main
-
-# Launch the frontend
-cd frontend
-sudo npm install
-sudo npm run dev
+cd GraphSpace
+npm ci
+cp .env.example .env.local   # set INVITE_CODE
+npm run dev                  # http://localhost:3000
 ```
+
+Checks:
+
+```bash
+npm run lint && npm run typecheck && npm test   # unit tests (Vitest)
+npm run e2e                                     # browser tests (Playwright)
+```
+
+### Layout
+
+| Path | What |
+|---|---|
+| `src/app` | Pages and API route handlers |
+| `src/engine`, `src/worker` | Tensor/autodiff engine and the worker that runs it |
+| `src/doc`, `src/graph`, `src/nodes` | Project document model, graph operations, node registry |
+| `src/canvas`, `src/ui`, `src/store` | pixi.js editor, panels, Redux store |
+| `src/server` | SQLite, auth, data access |
+| `public/datasets` | Bundled datasets (2-D points, 200 MNIST digits) |
+| `legacy/` | The previous Python/TensorFlow server and React frontend, kept for reference while it is ported |
+
 <div align="center">
   <sub>Built with ❤️ by the GraphSpace Team</sub>
 </div>
