@@ -221,7 +221,7 @@ const CLASS_COLORS = ['#3d97ff', '#f56305', '#6abf4b', '#b36bff', '#f1c232', '#f
 export function drawScatter(
   ctx: CanvasRenderingContext2D,
   x: TensorSnap,
-  y: TensorSnap,
+  y: TensorSnap | undefined,
   pred: TensorSnap | undefined,
   w: number,
   h: number,
@@ -229,9 +229,10 @@ export function drawScatter(
 ) {
   const pad = Math.min(w, h) * 0.08;
   const twoD = x.shape.length >= 2 && x.shape[x.shape.length - 1] === 2;
+  if (!twoD && !y) return;
   const xs = twoD ? column(x, 0) : Array.from(x.data);
-  const ys = twoD ? column(x, 1) : Array.from(y.data);
-  const classes = twoD ? argmaxRows(y) : null;
+  const ys = twoD ? column(x, 1) : Array.from(y!.data);
+  const classes = twoD && y && y.shape[y.shape.length - 1] > 1 ? argmaxRows(y) : null;
   const preds = pred ? (twoD ? argmaxRows(pred) : Array.from(pred.data)) : null;
   const allY = !twoD && preds ? ys.concat(preds as number[]) : ys;
   const [minX, maxX] = [Math.min(...xs), Math.max(...xs)];

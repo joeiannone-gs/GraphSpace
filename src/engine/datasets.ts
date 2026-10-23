@@ -106,6 +106,11 @@ export function decodeMnist(bytes: ArrayBuffer): Dataset {
 
 const synthetic: Record<string, () => Dataset> = { xor, moons, spiral };
 
+/** Built-in datasets that need no download (available synchronously). */
+export function syntheticDataset(source: string): Dataset | undefined {
+  return synthetic[source]?.();
+}
+
 export const DATASET_FILES: Record<string, string> = {
   'points-2d': '/datasets/points-2d.json',
   'mnist-200': '/datasets/mnist-200.bin',

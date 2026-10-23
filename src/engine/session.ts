@@ -6,6 +6,7 @@
 import type { Id, ProjectDoc, TensorJSON } from '@/doc/types';
 import type { DatasetParams, ParameterParams, RunEnv, RunMode } from '@/nodes/types';
 import { Compiled, NodeError, compile, portKey } from './compile';
+import { parseCsv } from './csv';
 import { BatchIterator, Dataset, FetchBytes, loadDataset } from './datasets';
 import { Optimizer } from './optim';
 import { Rng, hashString } from './rng';
@@ -120,7 +121,8 @@ export class Session {
     this.optimizer.config = { optimizer: doc.training.optimizer, lr: doc.training.lr, momentum: doc.training.momentum };
     const sources = new Set<string>();
     for (const n of this.compiled.order) {
-      if (n.type === 'dataset') sources.add(String((n.params as unknown as DatasetParams).source));
+      const p = n.params as unknown as DatasetParams;
+      if (n.type === 'dataset' && p.source !== 'csv') sources.add(String(p.source));
     }
     await Promise.all(
       [...sources]
@@ -173,9 +175,9 @@ export class Session {
         return this.tapeOf(p.trainable, nodeId, entry.value);
       },
       batch: (nodeId: string, p: DatasetParams) => {
-        const ds = this.datasets.get(p.source);
+        const ds = p.source === 'csv' ? this.csvDataset(p) : this.datasets.get(p.source);
         if (!ds) throw new Error(this.datasetErrors.get(p.source) ?? `Dataset "${p.source}" isn't loaded`);
-        const key = `${nodeId}|${p.source}|${p.split}|${p.batchSize}|${p.shuffle}`;
+        const key = `${nodeId}|${p.source}|${p.split}|${p.batchSize}|${p.shuffle}|${p.source === 'csv' ? hashString(`${p.csv}|${p.yColumns}|${p.classes}`) : ''}`;
         let it = this.iterators.get(key);
         if (!it) {
           it = new BatchIterator(ds[p.split], p.batchSize, p.shuffle, new Rng((seed ^ hashString(key)) >>> 0));
@@ -188,6 +190,19 @@ export class Session {
         return this.state.get(nodeId) as T;
       },
     };
+  }
+
+  private csvCache = new Map<string, Dataset>();
+
+  private csvDataset(p: DatasetParams): Dataset {
+    const key = `${hashString(p.csv ?? '')}|${p.yColumns}|${p.classes}`;
+    let ds = this.csvCache.get(key);
+    if (!ds) {
+      ds = parseCsv(p.csv ?? '', { yColumns: p.yColumns ?? 1, classes: p.classes ?? false });
+      if (this.csvCache.size > 8) this.csvCache.clear();
+      this.csvCache.set(key, ds);
+    }
+    return ds;
   }
 
   private currentTape: Tape | null = null;

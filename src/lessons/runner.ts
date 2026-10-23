@@ -42,11 +42,14 @@ export async function runChecks(step: Step, doc: ProjectDoc, fetchBytes: FetchBy
     }
     const valuesOk = of('value').every((c) => results.get(c)!.status === 'pass');
     const train = of('train');
-    if (!valuesOk) skip(train);
-    else if (train.length) {
+    const gen = of('generate');
+    if (!valuesOk) {
+      skip(train);
+      skip(gen);
+    } else if (train.length || gen.length) {
       const session = new Session(fetchBytes);
       await session.load(doc);
-      const steps = Math.max(...train.map((c) => (c.kind === 'train' ? c.steps : 0)));
+      const steps = Math.max(...[...train, ...gen].map((c) => (c.kind === 'train' || c.kind === 'generate' ? c.steps : 0)));
       let stalled = false;
       for (let i = 0; i < steps; i++) {
         if (session.trainStep() === null) {
@@ -55,8 +58,20 @@ export async function runChecks(step: Step, doc: ProjectDoc, fetchBytes: FetchBy
         }
       }
       session.evaluate();
-      for (const c of train) {
-        results.set(c, stalled ? { describe: c.describe, status: 'fail', detail: 'Training could not run — is a Minimize node connected to a loss?' } : safely(c, () => c.test({ doc, q, session })));
+      const stalledResult = (c: Check): CheckResult => ({ describe: c.describe, status: 'fail', detail: 'Training could not run — is a Minimize node connected to a loss?' });
+      for (const c of train) results.set(c, stalled ? stalledResult(c) : safely(c, () => c.test({ doc, q, session })));
+      for (const c of gen) {
+        if (stalled) {
+          results.set(c, stalledResult(c));
+          continue;
+        }
+        results.set(
+          c,
+          safely(c, () => {
+            session.generate(c.kind === 'generate' ? c.generate : 1);
+            return c.test({ doc, q, session });
+          }),
+        );
       }
     }
   }

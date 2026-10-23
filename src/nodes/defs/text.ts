@@ -40,7 +40,7 @@ export const textData = defineNode({
       kind: 'select',
       options: [...Object.entries(CORPORA).map(([value, c]) => ({ value, label: c.label })), { value: 'custom', label: 'My own text (below)' }],
     },
-    { key: 'custom', label: 'My own text', kind: 'text' },
+    { key: 'custom', label: 'My own text', kind: 'longtext', help: 'Paste text or load a .txt file (up to 20,000 characters).' },
     { key: 'context', label: 'Context length', kind: 'int', min: 2, max: 64, help: 'How many characters the model sees at once.' },
     { key: 'batchSize', label: 'Batch size', kind: 'int', min: 1, max: 64 },
     { key: 'prompt', label: 'Prompt for generating', kind: 'text' },

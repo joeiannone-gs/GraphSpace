@@ -15,7 +15,9 @@ export type CheckFn = (ctx: CheckContext) => boolean | string;
 export type Check =
   | { kind: 'structure'; describe: string; test: CheckFn }
   | { kind: 'value'; describe: string; test: CheckFn }
-  | { kind: 'train'; describe: string; steps: number; test: CheckFn };
+  | { kind: 'train'; describe: string; steps: number; test: CheckFn }
+  /** Train, then run `generate` feedback iterations before testing. */
+  | { kind: 'generate'; describe: string; steps: number; generate: number; test: CheckFn };
 
 export interface Step {
   title: string;

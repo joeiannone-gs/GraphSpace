@@ -26,9 +26,9 @@ export type Category =
   | 'Structure';
 
 /** How the canvas draws a node's live value. */
-export type DisplayKind = 'value' | 'tensor' | 'parameter' | 'dataset' | 'scatter' | 'image' | 'loss' | 'text' | 'none';
+export type DisplayKind = 'value' | 'tensor' | 'parameter' | 'dataset' | 'scatter' | 'points' | 'image' | 'loss' | 'text' | 'none';
 
-export type FieldKind = 'number' | 'int' | 'shape' | 'axes' | 'select' | 'bool' | 'text' | 'tensor' | 'slice';
+export type FieldKind = 'number' | 'int' | 'shape' | 'axes' | 'select' | 'bool' | 'text' | 'longtext' | 'tensor' | 'slice';
 
 export interface FieldSpec {
   key: string;
@@ -48,6 +48,10 @@ export interface DatasetParams {
   batchSize: number;
   shuffle: boolean;
   split: 'train' | 'test';
+  /** For source 'csv': the table and how to read it. */
+  csv?: string;
+  yColumns?: number;
+  classes?: boolean;
 }
 
 export interface ParameterParams {

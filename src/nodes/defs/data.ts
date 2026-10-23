@@ -10,6 +10,7 @@ export const DATASET_SOURCES = [
   { value: 'moons', label: 'Two moons (400)' },
   { value: 'spiral', label: 'Spiral, 3 classes (300)' },
   { value: 'mnist-200', label: 'MNIST digits (200 images)' },
+  { value: 'csv', label: 'My own table (CSV, below)' },
 ];
 
 export const value = defineNode({
@@ -83,9 +84,15 @@ export const dataset = defineNode({
     batchSize: z.number().int().min(0).default(0),
     shuffle: z.boolean().default(true),
     split: z.enum(['train', 'test']).default('train'),
+    csv: z.string().max(200_000).default(''),
+    yColumns: z.number().int().min(0).max(20).default(1),
+    classes: z.boolean().default(false),
   }) satisfies z.ZodType<DatasetParams>,
   fields: [
     { key: 'source', label: 'Data', kind: 'select', options: DATASET_SOURCES },
+    { key: 'csv', label: 'My table (CSV)', kind: 'longtext', help: 'Numbers separated by commas, one example per row. A header row is fine.' },
+    { key: 'yColumns', label: 'Answer columns (y)', kind: 'int', min: 0, max: 20, help: 'How many columns on the right are the answers.' },
+    { key: 'classes', label: 'Answers are classes (0, 1, 2…)', kind: 'bool' },
     { key: 'batchSize', label: 'Batch size', kind: 'int', min: 0, help: '0 uses every example each step.' },
     { key: 'shuffle', label: 'Shuffle', kind: 'bool' },
     {

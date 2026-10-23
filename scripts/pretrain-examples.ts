@@ -5,7 +5,7 @@
  */
 import fs from 'node:fs';
 import { Session } from '@/engine/session';
-import { buildCharTransformer } from '@/gallery/examples';
+import { buildCharTransformer, buildDiffusion2d } from '@/gallery/examples';
 import type { ProjectDoc } from '@/doc/types';
 
 const round = (v: number) => Number(v.toPrecision(5));
@@ -22,11 +22,17 @@ async function pretrain(slug: string, doc: ProjectDoc, steps: number) {
   for (const [id, value] of Object.entries(s.paramValues())) {
     trained.nodes[id].params.value = { shape: value.shape, data: value.data.map(round) };
   }
-  s.generate(200);
+  s.generate(doc.generate.steps);
   const textNode = Object.values(trained.nodes).find((n) => n.type === 'text_data');
   if (textNode) console.log(`${slug} sample:\n${s.snapshot().texts[textNode.id]}\n`);
   fs.writeFileSync(`public/examples/${slug}.json`, JSON.stringify(trained));
   console.log(`wrote public/examples/${slug}.json (${(fs.statSync(`public/examples/${slug}.json`).size / 1024).toFixed(0)} KB)`);
 }
 
-void pretrain('char-transformer', buildCharTransformer(), 3000);
+async function main() {
+  const only = process.argv[2];
+  if (!only || only === 'char-transformer') await pretrain('char-transformer', buildCharTransformer(), 3000);
+  if (!only || only === 'diffusion-2d') await pretrain('diffusion-2d', buildDiffusion2d(), 3000);
+}
+
+void main();

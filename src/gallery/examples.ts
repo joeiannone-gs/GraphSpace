@@ -2,7 +2,7 @@
 import { DocBuilder } from '@/doc/builder';
 import type { ProjectDoc } from '@/doc/types';
 import { CORPORA, vocabOf } from '@/engine/text';
-import { layerNorm, linear, mlp, mse, transformerBlock } from '@/library/builtin';
+import { layerNorm, linear, mlp, mse, timestepEmbedding, transformerBlock } from '@/library/builtin';
 
 export interface Example {
   slug: string;
@@ -100,34 +100,39 @@ export function buildCharTransformer(opts: { corpus?: string; context?: number; 
   b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.01, steps: 600 };
   b.doc.generate = { steps: 200 };
   b.doc.info.description =
-    'A tiny transformer that reads 16 characters and predicts the next one. Train it, then press **Generate**: each new character is fed back into the text (the dashed orange connection) to predict the one after.';
+    'A tiny transformer that reads 16 characters and predicts the next one. Double-click **Transformer** to see inside: character and position vectors, a transformer block (open it too), and the scores for every character. Train it, then press **Generate**: each new character is fed back into the text (the dashed orange connection).';
   const text = b.add('text_data', { source: corpus, context: T, batchSize: 8 }, { label: 'Text' });
-  const table = b.add('parameter', { shape: [V, D], init: 'normal', scale: 0.1 }, { label: 'character vectors' });
-  const emb = b.add('embedding');
-  b.wire(table, emb, 'table');
-  b.wire([text, 'x'], emb, 'ids');
-  const pos = b.add('parameter', { shape: [T, D], init: 'normal', scale: 0.1 }, { label: 'position vectors' });
-  let h = b.add('add', {}, { label: 'input' });
-  b.wire(emb, h, 'a');
-  b.wire(pos, h, 'b');
-  let port = 'out';
-  for (let i = 0; i < (opts.blocks ?? 1); i++) {
-    const block = b.insert(transformerBlock.build({ dModel: D, heads: opts.heads ?? 2 }), { label: `Block ${i + 1}` });
-    b.wire([h, port], block, 'x');
-    h = block;
-    port = 'y';
-  }
-  const ln = b.insert(layerNorm.build({ dModel: D }));
-  b.wire([h, port], ln, 'x');
-  const head = b.insert(linear.build({ inFeatures: D, outFeatures: V }), { label: 'scores' });
-  b.wire([ln, 'y'], head, 'x');
+  const model = b.group('Transformer', (g) => {
+    const ids = g.input('ids');
+    const table = g.add('parameter', { shape: [V, D], init: 'normal', scale: 0.1 }, { label: 'character vectors' });
+    const emb = g.add('embedding');
+    g.wire(table, emb, 'table');
+    g.wire(ids, emb, 'ids');
+    const pos = g.add('parameter', { shape: [T, D], init: 'normal', scale: 0.1 }, { label: 'position vectors' });
+    let h: string = g.add('add', {}, { label: 'input' });
+    g.wire(emb, h, 'a');
+    g.wire(pos, h, 'b');
+    let port = 'out';
+    for (let i = 0; i < (opts.blocks ?? 1); i++) {
+      const block = g.insert(transformerBlock.build({ dModel: D, heads: opts.heads ?? 2 }), { label: `Block ${i + 1}` });
+      g.wire([h, port], block, 'x');
+      h = block;
+      port = 'y';
+    }
+    const ln = g.insert(layerNorm.build({ dModel: D }));
+    g.wire([h, port], ln, 'x');
+    const head = g.insert(linear.build({ inFeatures: D, outFeatures: V }), { label: 'scores' });
+    g.wire([ln, 'y'], head, 'x');
+    g.wire([head, 'y'], g.output('scores'), 'in');
+  });
+  b.wire([text, 'x'], model, 'ids');
   const ce = b.add('softmax_cross_entropy');
-  b.wire([head, 'y'], ce, 'logits');
+  b.wire([model, 'scores'], ce, 'logits');
   b.wire([text, 'y'], ce, 'targets');
   const min = b.add('minimize');
   b.wire(ce, min, 'loss');
   const sample = b.add('sample', { temperature: 0.7 });
-  b.wire([head, 'y'], sample, 'logits');
+  b.wire([model, 'scores'], sample, 'logits');
   b.wire(sample, text, 'next', 'feedback');
   return b.build();
 }
@@ -139,7 +144,61 @@ export const charTransformer: Example = {
   build: () => buildCharTransformer(),
 };
 
-export const examples: Example[] = [fitALine, xorMlp, mnistClassifier, charTransformer];
+/** Denoising diffusion on 2-D points: learn to predict the noise, then walk from noise back to data. */
+export function buildDiffusion2d(opts: { source?: string; steps?: number; hidden?: number } = {}) {
+  const K = opts.steps ?? 40;
+  const H = opts.hidden ?? 128;
+  const b = new DocBuilder();
+  b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.003, steps: 3000 };
+  b.doc.generate = { steps: K };
+  b.doc.info.description =
+    'Training adds a random amount of noise to the moons and teaches the **Denoiser** network to predict that noise. **Generate** starts from pure noise and removes the predicted noise one step at a time (the dashed feedback loop), until points that look like the data appear.';
+  const data = b.add('dataset', { source: opts.source ?? 'moons', batchSize: 128 }, { label: 'Data' });
+  const noise = b.add('diffusion_noise', { steps: K, samples: 400 }, { label: 'Add noise' });
+  b.wire([data, 'x'], noise, 'x');
+  const net = b.group('Denoiser', (g) => {
+    const xt = g.input('xt', 0);
+    const t = g.input('t', 1);
+    const temb = g.insert(timestepEmbedding.build({ frequencies: 8 }));
+    g.wire(t, temb, 't');
+    const cat = g.add('concat', { count: 2, axis: -1 });
+    g.wire(xt, cat, 'in0');
+    g.wire([temb, 'y'], cat, 'in1');
+    const l1 = g.insert(linear.build({ inFeatures: 18, outFeatures: H }));
+    g.wire(cat, l1, 'x');
+    const a1 = g.add('relu');
+    g.wire([l1, 'y'], a1, 'x');
+    const l2 = g.insert(linear.build({ inFeatures: H, outFeatures: H }));
+    g.wire(a1, l2, 'x');
+    const a2 = g.add('relu');
+    g.wire([l2, 'y'], a2, 'x');
+    const l3 = g.insert(linear.build({ inFeatures: H, outFeatures: 2 }));
+    g.wire(a2, l3, 'x');
+    g.wire([l3, 'y'], g.output('noise'), 'in');
+  });
+  b.wire([noise, 'xt'], net, 'xt');
+  b.wire([noise, 't'], net, 't');
+  const loss = b.insert(mse.build({}));
+  b.wire([net, 'noise'], loss, 'prediction');
+  b.wire([noise, 'noise'], loss, 'target');
+  const min = b.add('minimize');
+  b.wire([loss, 'loss'], min, 'loss');
+  const step = b.add('ddpm_step', { steps: K }, { label: 'Denoise' });
+  b.wire([noise, 'xt'], step, 'xt');
+  b.wire([net, 'noise'], step, 'eps');
+  b.wire([noise, 't'], step, 't');
+  b.wire(step, noise, 'prev', 'feedback');
+  return b.build();
+}
+
+export const diffusion2d: Example = {
+  slug: 'diffusion-2d',
+  title: 'Diffusion from scratch',
+  summary: 'The idea behind image generators, on 2-D points: learn to remove noise, then turn noise into data.',
+  build: () => buildDiffusion2d(),
+};
+
+export const examples: Example[] = [fitALine, xorMlp, mnistClassifier, charTransformer, diffusion2d];
 
 export function getExample(slug: string): Example | undefined {
   return examples.find((e) => e.slug === slug);

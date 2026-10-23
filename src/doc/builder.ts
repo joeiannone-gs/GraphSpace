@@ -16,9 +16,6 @@ export interface AddOptions {
   pos?: Vec2;
 }
 
-export const LAYER_GAP = 1100;
-export const SIBLING_GAP = 900;
-
 export class DocBuilder {
   readonly doc: ProjectDoc;
   private scope: Id | null = null;
@@ -107,15 +104,27 @@ export class DocBuilder {
   }
 }
 
+/** Radius a node is drawn with (groups grow with their contents); mirrors canvas/geometry. */
+function layoutRadius(doc: ProjectDoc, id: Id, childCount: Map<Id, number>): number {
+  const n = doc.nodes[id];
+  if (n.type === 'composite') return 300 * Math.min(3.5, Math.max(1.25, 0.8 + 0.35 * Math.sqrt(childCount.get(id) ?? 0)));
+  if (n.type === 'input' || n.type === 'output') return 165;
+  return 300;
+}
+
 /**
  * Layered layout per scope: a node's layer is its longest distance from a source (feedback edges
- * ignored). Direction `up` stacks layers bottom to top, `right` left to right.
+ * ignored). Layers and siblings are spaced by the sizes of the nodes in them, so big groups don't
+ * overlap and small nodes stay close. Direction `up` stacks layers bottom to top, `right` left to right.
  */
 export function autoLayout(doc: ProjectDoc, shouldPlace: (id: Id) => boolean, order: Id[] = Object.keys(doc.nodes)) {
+  const GAP = 260;
   const rank = new Map(order.map((id, i) => [id, i]));
   const scopes = new Map<Id | null, Id[]>();
+  const childCount = new Map<Id, number>();
   for (const n of Object.values(doc.nodes)) {
     scopes.set(n.parent, [...(scopes.get(n.parent) ?? []), n.id]);
+    if (n.parent) childCount.set(n.parent, (childCount.get(n.parent) ?? 0) + 1);
   }
   for (const [, ids] of scopes) {
     const inScope = new Set(ids);
@@ -141,12 +150,21 @@ export function autoLayout(doc: ProjectDoc, shouldPlace: (id: Id) => boolean, or
       const l = layer.get(id)!;
       byLayer.set(l, [...(byLayer.get(l) ?? []), id]);
     }
-    for (const [l, members] of byLayer) {
+    const r = (id: Id) => layoutRadius(doc, id, childCount);
+    let along = 0;
+    let prevHalf = 0;
+    for (const l of [...byLayer.keys()].sort((a, b) => a - b)) {
+      const members = byLayer.get(l)!;
+      const half = Math.max(...members.map(r));
+      along += l === 0 ? 0 : prevHalf + GAP + half;
+      prevHalf = half;
+      const widths = members.map((id) => 2 * r(id) + GAP);
+      let across = -widths.reduce((a, b) => a + b, 0) / 2;
       members.forEach((id, i) => {
+        const center = across + widths[i] / 2;
+        across += widths[i];
         if (!shouldPlace(id)) return;
-        const across = (i - (members.length - 1) / 2) * SIBLING_GAP;
-        const along = l * LAYER_GAP;
-        doc.nodes[id].pos = doc.layout.direction === 'up' ? [across || 0, -along || 0] : [along || 0, across || 0];
+        doc.nodes[id].pos = doc.layout.direction === 'up' ? [center || 0, -along || 0] : [along || 0, center || 0];
       });
     }
   }

@@ -339,7 +339,11 @@ export class Scene {
         const x = t(ns.inputs.x);
         const y = t(ns.inputs.y);
         const p = t(ns.inputs.prediction);
-        return x && y ? (ctx, w, h) => (drawScatter(ctx, x, y, p, w, h, c), true) : null;
+        return x && (y || x.shape[x.shape.length - 1] === 2) ? (ctx, w, h) => (drawScatter(ctx, x, y, p, w, h, c), true) : null;
+      }
+      case 'points': {
+        const pts = t(ns.outputs.xt) ?? t(ns.outputs.out);
+        return pts && pts.shape[pts.shape.length - 1] === 2 ? (ctx, w, h) => (drawScatter(ctx, pts, undefined, undefined, w, h, c), true) : null;
       }
       case 'image': {
         const x = t(ns.inputs.x);

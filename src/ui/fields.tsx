@@ -106,6 +106,29 @@ export function Field({ spec, value, onChange }: { spec: FieldSpec; value: unkno
         ))}
       </select>
     );
+  } else if (spec.kind === 'longtext') {
+    control = (
+      <>
+        <textarea rows={5} value={text} spellCheck={false} onChange={(e) => setText(e.target.value)} onBlur={commit} />
+        <input
+          type="file"
+          accept=".csv,.txt,.tsv,text/plain,text/csv"
+          aria-label={`Load ${spec.label} from a file`}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (file.size > 200_000) {
+              setError('That file is too big (200 KB at most).');
+              return;
+            }
+            const content = await file.text();
+            setText(content);
+            setError(null);
+            onChange(content);
+          }}
+        />
+      </>
+    );
   } else if (spec.kind === 'tensor') {
     control = (
       <textarea

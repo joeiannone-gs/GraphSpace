@@ -407,6 +407,38 @@ export const transformerBlock: BuiltinGroup = {
     ),
 };
 
+export const timestepEmbedding: BuiltinGroup = {
+  id: 'timestep_embedding',
+  label: 'Timestep Embedding',
+  explanation: 'Turns a noise level `t` (0…1) into many sine and cosine waves of different speeds, so a network can easily tell nearby noise levels apart.',
+  version: 1,
+  fields: [{ key: 'frequencies', label: 'Frequencies', kind: 'int', min: 1, max: 32 }],
+  defaults: { frequencies: 8 },
+  build: ({ frequencies }) =>
+    make(
+      'timestep_embedding',
+      'Timestep Embedding',
+      1,
+      (b) => {
+        const t = b.input('t');
+        const F = Math.max(1, Math.min(32, frequencies));
+        const freqs = b.add('value', { value: { shape: [1, F], data: Array.from({ length: F }, (_, k) => Math.PI * 2 ** k) } }, { label: 'frequencies' });
+        const phase = b.add('multiply');
+        b.wire(t, phase, 'a');
+        b.wire(freqs, phase, 'b');
+        const s = b.add('sin');
+        b.wire(phase, s, 'x');
+        const c = b.add('cos');
+        b.wire(phase, c, 'x');
+        const cat = b.add('concat', { count: 2, axis: -1 });
+        b.wire(s, cat, 'in0');
+        b.wire(c, cat, 'in1');
+        b.wire(cat, b.output('y'), 'in');
+      },
+      { frequencies },
+    ),
+};
+
 export const builtinGroups: BuiltinGroup[] = [
   linear,
   mlp,
@@ -420,6 +452,7 @@ export const builtinGroups: BuiltinGroup[] = [
   feedForward,
   addNorm,
   transformerBlock,
+  timestepEmbedding,
 ];
 
 export function getBuiltin(id: string): BuiltinGroup | undefined {

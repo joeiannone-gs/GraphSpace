@@ -1,6 +1,7 @@
 /** Every node type, in palette order. Adding a node type means adding a definition here. */
 import type { DocNode, ProjectDoc } from '@/doc/types';
 import * as data from './defs/data';
+import * as diffusion from './defs/diffusion';
 import * as display from './defs/display';
 import * as linalg from './defs/linalg';
 import * as loss from './defs/loss';
@@ -46,6 +47,9 @@ const ALL: NodeDef<never>[] = [
   text.textData,
   text.embedding,
   text.sample,
+  diffusion.diffusionNoise,
+  diffusion.ddpmStep,
+  diffusion.randn,
   display.peek,
   display.scatter,
   display.image,
