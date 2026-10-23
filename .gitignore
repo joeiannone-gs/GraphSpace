@@ -23,3 +23,15 @@ frontend/node_modules/
 frontend/.next/
 frontend/app/proto/compiled.d.ts
 frontend/app/proto/compiled.js
+
+# Secrets and local state (never commit)
+*.pem
+*.key
+id_rsa*
+.env
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
