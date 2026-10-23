@@ -2,7 +2,7 @@
  * Owns the pixi application for the editor: viewport, background, scene, and every pointer and
  * keyboard interaction. Interactions become Redux actions; rendering follows the store.
  */
-import { Application, FederatedPointerEvent, Graphics, Point, Rectangle } from 'pixi.js';
+import { Application, FederatedPointerEvent, Graphics, Point, Rectangle, Ticker } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import { cloneSubtree, type Subtree } from '@/doc/clone';
 import { newId } from '@/doc/ids';
@@ -44,6 +44,7 @@ export class CanvasController {
   private seenUi: RootState['ui'] | null = null;
   private seenRuntime = -1;
   private seenTheme: string | null = null;
+  private seenLoads = -1;
   private drag: Drag | null = null;
   private lastDown: { id: Id; at: number } | null = null;
   private destroyed = false;
@@ -75,6 +76,8 @@ export class CanvasController {
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
       preference: 'webgl',
+      // Render on demand (see requestRender) instead of 60 times a second while idle.
+      autoStart: false,
     });
     if (this.destroyed) {
       app.destroy(true);
@@ -102,7 +105,7 @@ export class CanvasController {
     app.stage.hitArea = app.screen;
 
     this.background = new Background(theme.grid);
-    this.scene = new Scene(theme, this.state.ui.theme === 'dark' ? darkDrawColors : lightDrawColors, {
+    this.scene = new Scene(theme, this.state.ui.theme === 'dark' ? darkDrawColors : lightDrawColors, this.requestRender, {
       nodeDown: (v, e) => this.onNodeDown(v, e),
       portDown: (v, kind, port, e) => this.onPortDown(v, kind, port, e),
       edgeDown: (v, e) => this.onEdgeDown(v, e),
@@ -115,12 +118,18 @@ export class CanvasController {
     });
     viewport.on('moved', () => this.drawBackground());
     viewport.on('zoomed', () => this.drawBackground());
+    // pixi-viewport animates (wheel smoothing, fit animations) on the shared ticker.
+    Ticker.shared.add(this.onTick);
     app.stage.on('globalpointermove', this.onPointerMove);
+    // Anything under the pointer may highlight, so redraw on pointer activity too.
+    app.stage.on('pointerdown', this.requestRender);
+    app.stage.on('pointerup', this.requestRender);
     app.stage.on('pointerup', this.onPointerUp);
     app.stage.on('pointerupoutside', this.onPointerUp);
     window.addEventListener('keydown', this.onKeyDown);
 
     this.resizeObserver = new ResizeObserver(() => {
+      app.resize();
       viewport.resize(this.host.clientWidth, this.host.clientHeight);
       this.drawBackground();
     });
@@ -136,11 +145,29 @@ export class CanvasController {
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
       this.flush();
+      if (this.needsRender || this.viewport?.dirty) {
+        this.needsRender = false;
+        if (this.viewport) this.viewport.dirty = false;
+        this.app.render();
+      }
     });
+  };
+
+  private needsRender = true;
+
+  /** Ask for one redraw on the next animation frame. */
+  requestRender = () => {
+    this.needsRender = true;
+    this.schedule();
+  };
+
+  private onTick = () => {
+    if (this.viewport?.dirty) this.schedule();
   };
 
   private flush() {
     if (this.destroyed) return;
+    this.needsRender = true;
     const { doc, ui } = this.state;
     if (ui.theme !== this.seenTheme) {
       const theme = canvasThemes[ui.theme];
@@ -158,7 +185,10 @@ export class CanvasController {
       this.scene.reconcile(doc.present, ui);
       this.seenDoc = doc.present;
       this.seenUi = ui;
-      if (scopeChanged) this.fitScope(true);
+      // A newly loaded document jumps into view; entering or leaving a group animates.
+      if (doc.loads !== this.seenLoads) this.fitScope(false);
+      else if (scopeChanged) this.fitScope(true);
+      this.seenLoads = doc.loads;
     }
     if (this.runtime.revision !== this.seenRuntime) {
       this.seenRuntime = this.runtime.revision;
@@ -170,6 +200,7 @@ export class CanvasController {
     if (!this.viewport) return;
     const v = this.viewport;
     this.background.draw(v.left, v.top, v.right, v.bottom, v.scale.x);
+    this.requestRender();
   }
 
   // ---- coordinates ----
@@ -273,7 +304,9 @@ export class CanvasController {
       );
     } else if (drag.kind === 'wire') {
       this.drawGhost(this.toScope(e.global, drag.scope));
+      this.requestRender();
     } else {
+      this.requestRender();
       const [x0, y0] = drag.start;
       const [x1, y1] = this.toWorld(e.global);
       this.brush.clear();
@@ -292,9 +325,11 @@ export class CanvasController {
       if (drag.moved) this.store.dispatch(docActions.endGesture());
     } else if (drag.kind === 'wire') {
       this.ghost.clear();
+      this.requestRender();
       this.finishWire(drag, e);
     } else {
       this.brush.clear();
+      this.requestRender();
       this.viewport.plugins.resume('drag');
       this.finishBrush(drag, this.toWorld(e.global));
     }
@@ -525,6 +560,7 @@ export class CanvasController {
     if (this.frame) cancelAnimationFrame(this.frame);
     for (const u of this.unsubscribe) u();
     window.removeEventListener('keydown', this.onKeyDown);
+    Ticker.shared.remove(this.onTick);
     this.resizeObserver?.disconnect();
     if (this.app) {
       try {

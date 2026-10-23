@@ -46,6 +46,7 @@ export class Scene {
   constructor(
     private theme: CanvasTheme,
     private colors: DrawColors,
+    private readonly requestRender: () => void,
     private readonly events: SceneEvents,
   ) {
     this.root.addChild(this.rootEdges, this.rootNodes);
@@ -115,7 +116,7 @@ export class Scene {
       const signature = JSON.stringify([model.radius, model.ports.inputs.map((p) => [p.def.name, p.pos]), model.ports.outputs.map((p) => [p.def.name, p.pos])]);
       let view = this.nodes.get(id);
       if (!view) {
-        const created = new NodeView(model, this.theme);
+        const created = new NodeView(model, this.theme, this.requestRender);
         created.container.on('pointerdown', (e: FederatedPointerEvent) => {
           e.stopPropagation();
           this.events.nodeDown(created, e);

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { cloneSubtree } from '@/doc/clone';
+import { cloneSubtree, extractSubtree } from '@/doc/clone';
 import { newId } from '@/doc/ids';
 import type { DocNode, Id, ProjectDoc } from '@/doc/types';
 import { formatNumber, shapeLabel } from '@/canvas/displays/draw';
@@ -13,6 +13,7 @@ import { useAppDispatch, useAppSelector } from '@/store/store';
 import { uiActions } from '@/store/uiSlice';
 import { useRuntimeSnapshot } from './EditorContext';
 import { Field } from './fields';
+import { useLibrary } from './LibraryContext';
 import { Markdown } from './Markdown';
 import styles from './editor.module.css';
 
@@ -94,6 +95,7 @@ function ValueSummary({ node, snap }: { node: DocNode; snap: SessionSnapshot | n
 function NodeInspector({ doc, node }: { doc: ProjectDoc; node: DocNode }) {
   const dispatch = useAppDispatch();
   const snap = useRuntimeSnapshot();
+  const library = useLibrary();
   const def = getDef(node.type);
   const parsed = parseParams(node);
   const params = parsed.ok ? parsed.params : node.params;
@@ -160,6 +162,20 @@ function NodeInspector({ doc, node }: { doc: ProjectDoc; node: DocNode }) {
           >
             Ungroup
           </button>
+          {library && (
+            <button
+              className={styles.linkButton}
+              title="Reuse this group in any of your projects"
+              onClick={async () => {
+                const name = prompt('Name for this node', node.label ?? 'My node');
+                if (!name) return;
+                await library.save(name.slice(0, 60), node.note ?? '', extractSubtree(doc, node.id));
+                dispatch(uiActions.showToast(`Saved “${name}” to your Nodes.`));
+              }}
+            >
+              Save as node
+            </button>
+          )}
         </div>
       )}
       <ValueSummary node={node} snap={snap} />

@@ -44,7 +44,11 @@ export class NodeView {
   /** Inner content scale/center for groups (frozen while dragging). */
   fit = { scale: 1, center: [0, 0] as Vec2 };
 
-  constructor(model: NodeModel, private theme: CanvasTheme) {
+  constructor(
+    model: NodeModel,
+    private theme: CanvasTheme,
+    private readonly requestRender: () => void = () => undefined,
+  ) {
     this.model = model;
     this.container.label = `node:${model.node.id}`;
     this.label = new Text({ text: '', style: { fontFamily: FONT, fontSize: 64, fill: theme.textCss, align: 'center' } });
@@ -174,6 +178,7 @@ export class NodeView {
       if (this.icon !== sprite || sprite.destroyed) return;
       sprite.texture = tex;
       sprite.scale.set(size / Math.max(tex.width, tex.height, 1));
+      this.requestRender();
     });
     sprite.position.set(0, this.model.radius * 0.08);
     sprite.eventMode = 'none';

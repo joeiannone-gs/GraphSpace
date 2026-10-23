@@ -19,6 +19,6 @@ export default defineConfig({
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
-    env: { HOSTNAME: '127.0.0.1', PORT: String(port), DATABASE_PATH: process.env.E2E_DATABASE_PATH || 'test-results/e2e.db', INVITE_CODE: 'e2e-invite' },
+    env: { HOSTNAME: '127.0.0.1', PORT: String(port), DATABASE_PATH: process.env.E2E_DATABASE_PATH || 'data/e2e.db', INVITE_CODE: 'e2e-invite' },
   },
 });

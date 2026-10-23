@@ -14,7 +14,7 @@ export const tensorJSONSchema = z
 
 const portRef = z.object({ node: id, port: z.string().min(1).max(40) });
 
-const nodeSchema = z.object({
+export const nodeSchema = z.object({
   id,
   type: z.string().min(1).max(40),
   parent: id.nullable(),
@@ -32,7 +32,7 @@ const nodeSchema = z.object({
     .optional(),
 });
 
-const edgeSchema = z.object({
+export const edgeSchema = z.object({
   id,
   from: portRef,
   to: portRef,
@@ -90,3 +90,17 @@ export function parseDoc(input: unknown): ProjectDoc {
   if (problems.length) throw new Error(`Invalid document: ${problems.slice(0, 3).join('; ')}`);
   return doc;
 }
+
+/** A group and its contents, as saved to the Nodes library. */
+export const subtreeSchema = z
+  .object({ root: id, nodes: z.record(id, nodeSchema), edges: z.record(id, edgeSchema) })
+  .superRefine((sub, ctx) => {
+    const root = sub.nodes[sub.root];
+    if (!root || root.type !== 'composite' || root.parent !== null) ctx.addIssue({ code: 'custom', message: 'root must be a top-level group' });
+    for (const n of Object.values(sub.nodes)) {
+      if (n.id !== sub.root && (n.parent === null || !sub.nodes[n.parent])) ctx.addIssue({ code: 'custom', message: `node ${n.id} is outside the group` });
+    }
+    for (const e of Object.values(sub.edges)) {
+      if (!sub.nodes[e.from.node] || !sub.nodes[e.to.node]) ctx.addIssue({ code: 'custom', message: `edge ${e.id} leaves the group` });
+    }
+  });

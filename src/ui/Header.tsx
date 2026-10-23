@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/store/store';
 import { uiActions } from '@/store/uiSlice';
 import styles from './editor.module.css';
 
-export function Header({ right }: { right?: React.ReactNode }) {
+export function Header({ right, center }: { right?: React.ReactNode; center?: React.ReactNode }) {
   const theme = useAppSelector((s) => s.ui.theme);
   const dispatch = useAppDispatch();
   useEffect(() => {
@@ -26,6 +26,7 @@ export function Header({ right }: { right?: React.ReactNode }) {
         />
         <span>Dark mode</span>
       </label>
+      {center}
       <div className={styles.headerRight}>{right}</div>
     </header>
   );

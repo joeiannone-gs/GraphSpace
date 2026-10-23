@@ -12,13 +12,28 @@ import { Toast } from './Toast';
 import styles from './editor.module.css';
 
 /** The editor layout: palette on the left, canvas in the middle, inspector on the right. */
-export function EditorShell({ headerRight, left, right, paletteFilter }: { headerRight?: React.ReactNode; left?: React.ReactNode; right?: React.ReactNode; paletteFilter?: readonly string[] }) {
+export function EditorShell({
+  headerRight,
+  headerCenter,
+  left,
+  right,
+  overlay,
+  paletteFilter,
+}: {
+  headerRight?: React.ReactNode;
+  headerCenter?: React.ReactNode;
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+  /** Extra things drawn over the canvas (tabs, banners). */
+  overlay?: React.ReactNode;
+  paletteFilter?: readonly string[];
+}) {
   const { leftOpen, rightOpen } = useAppSelector((s) => s.ui);
   const dispatch = useAppDispatch();
   const { canvas } = useEditor();
   return (
     <div className={styles.shell}>
-      <Header right={headerRight} />
+      <Header right={headerRight} center={headerCenter} />
       <div className={styles.body} data-left={leftOpen} data-right={rightOpen}>
         {leftOpen && (
           <aside className={`${styles.side} modern-scroll`}>
@@ -61,6 +76,7 @@ export function EditorShell({ headerRight, left, right, paletteFilter }: { heade
               «
             </button>
           )}
+          {overlay}
           <Toast />
         </main>
         {rightOpen && (

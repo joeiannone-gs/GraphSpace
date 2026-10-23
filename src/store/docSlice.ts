@@ -18,6 +18,8 @@ export interface DocState {
   gestureBase: ProjectDoc | null;
   /** Last edit that was rejected, for a toast (e.g. "Both nodes must be in the same group"). */
   rejected: string | null;
+  /** Increases each time a whole document is loaded (the canvas refits the view). */
+  loads: number;
 }
 
 const initialState: DocState = {
@@ -27,6 +29,7 @@ const initialState: DocState = {
   version: 1,
   gestureBase: null,
   rejected: null,
+  loads: 0,
 };
 
 /** Record history (unless a gesture is open), then apply `edit` to the draft document. */
@@ -61,6 +64,7 @@ const docSlice = createSlice({
       state.present = a.payload.doc;
       state.gestureBase = null;
       state.version++;
+      state.loads++;
     },
     undo(state) {
       const prev = state.past.pop();
