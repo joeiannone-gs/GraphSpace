@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getDb } from '@/server/db';
 import { HttpError } from '@/server/http';
 import { getProject, getWorking } from '@/server/repo/projects';
+import { getProgress } from '@/server/repo/lessons';
 import { currentUser } from '@/server/session';
 import { ProjectEditor } from '@/ui/ProjectEditor';
 
@@ -34,10 +35,12 @@ export default async function ProjectPage({
   const user = await currentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/p/${projectId}`)}`);
   const { project, branchId, working } = load(user.id, projectId, branch);
+  const progress = project.lessonId ? getProgress(getDb(), user.id, project.lessonId) : undefined;
   return (
     <ProjectEditor
       user={{ email: user.email, displayName: user.displayName }}
-      project={{ id: project.id, title: project.title }}
+      project={{ id: project.id, title: project.title, lessonId: project.lessonId }}
+      lessonProgress={progress && progress.projectId === project.id ? { step: progress.step, completed: progress.completed } : undefined}
       key={branchId}
       branchId={branchId}
       initialDoc={working.doc}

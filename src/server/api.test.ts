@@ -9,6 +9,7 @@ import * as auth from './api/auth';
 import * as library from './api/library';
 import * as projects from './api/projects';
 import * as vcs from './api/vcs';
+import * as shares from './api/shares';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-api-'));
 const ORIGIN = 'http://gs.test';
@@ -164,5 +165,32 @@ describe('version control', () => {
     expect((await call(vcs.removeBranch, 'DELETE', { cookie: erin, params: { pid, bid: branch.id } })).status).toBe(400);
     const info = await (await call(projects.get, 'GET', { cookie: erin, params: { pid } })).json();
     expect(info.project.defaultBranchId).toBe(branch.id);
+  });
+});
+
+describe('share links', () => {
+  it('shares a frozen snapshot publicly, forks it, and revokes it', async () => {
+    const owner = await signUp('owner@x.io');
+    const friend = await signUp('friend@x.io');
+    const created = await (await call(projects.create, 'POST', { cookie: owner, body: { from: { kind: 'example', slug: 'xor-mlp' } } })).json();
+    const share = (await (await call(shares.create, 'POST', { cookie: owner, params: { pid: created.id }, body: { branchId: created.branchId } })).json()).share;
+    expect(share.token).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect((await call(shares.create, 'POST', { cookie: friend, params: { pid: created.id }, body: { branchId: created.branchId } })).status).toBe(404);
+
+    // Later edits don't change what the link shows.
+    const w = await (await call(projects.getWorkingDoc, 'GET', { cookie: owner, params: { pid: created.id, bid: created.branchId } })).json();
+    await call(projects.putWorkingDoc, 'PUT', { cookie: owner, params: { pid: created.id, bid: created.branchId }, body: { doc: { ...w.doc, info: { description: 'changed later' } }, baseVersion: w.version } });
+    const pub = await (await call(shares.get, 'GET', { params: { token: share.token } })).json();
+    expect(pub.author).toBe('owner');
+    expect(pub.doc.info.description).not.toBe('changed later');
+
+    expect((await call(shares.fork, 'POST', { params: { token: share.token }, body: {} })).status).toBe(401);
+    const forked = await (await call(shares.fork, 'POST', { cookie: friend, params: { token: share.token }, body: {} })).json();
+    const friendsProjects = (await (await call(projects.list, 'GET', { cookie: friend })).json()).projects;
+    expect(friendsProjects.map((p: { id: string }) => p.id)).toContain(forked.id);
+
+    expect((await call(shares.revoke, 'DELETE', { cookie: friend, params: { token: share.token } })).status).toBe(404);
+    expect((await call(shares.revoke, 'DELETE', { cookie: owner, params: { token: share.token } })).status).toBe(200);
+    expect((await call(shares.get, 'GET', { params: { token: share.token } })).status).toBe(404);
   });
 });

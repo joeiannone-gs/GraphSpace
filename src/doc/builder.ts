@@ -27,6 +27,19 @@ export class DocBuilder {
 
   constructor(doc: ProjectDoc = emptyDoc()) {
     this.doc = doc;
+    // Nodes that already exist keep their positions.
+    for (const id of Object.keys(doc.nodes)) this.placed.add(id);
+  }
+
+  /** Add nodes inside an existing group. */
+  inGroup(group: Id, build: (b: DocBuilder) => void) {
+    const outer = this.scope;
+    this.scope = group;
+    try {
+      build(this);
+    } finally {
+      this.scope = outer;
+    }
   }
 
   add(type: string, params: Record<string, unknown> = {}, opts: AddOptions = {}): Id {

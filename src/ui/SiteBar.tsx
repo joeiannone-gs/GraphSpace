@@ -12,6 +12,7 @@ export function SiteBar({ user }: { user: User | null }) {
         <span>GraphSpace</span>
       </Link>
       <div className={styles.barRight}>
+        <Link href="/learn">Lessons</Link>
         {user ? (
           <UserMenu user={user} />
         ) : (

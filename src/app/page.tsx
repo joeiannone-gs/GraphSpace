@@ -28,7 +28,7 @@ function Examples({ signedIn }: { signedIn: boolean }) {
         return signedIn ? (
           <NewProjectButton key={ex.slug} className={styles.tile} from={{ kind: 'example', slug: ex.slug }} label={art} />
         ) : (
-          <Link key={ex.slug} className={styles.tile} href="/sandbox">
+          <Link key={ex.slug} className={styles.tile} href={`/gallery/${ex.slug}`}>
             {art}
           </Link>
         );
@@ -48,7 +48,10 @@ export default async function Home() {
             <Image src="/LogoAndName.png" alt="GraphSpace" width={399} height={152} priority style={{ height: 'auto', maxWidth: '100%' }} />
             <p>Build machine-learning models by connecting nodes, then train them and watch every number change.</p>
             <div className={styles.row}>
-              <Link className={styles.primary} href="/sandbox">
+              <Link className={styles.primary} href="/learn">
+                Start learning
+              </Link>
+              <Link className={styles.secondary} href="/sandbox">
                 Try the sandbox
               </Link>
               <Link className={styles.secondary} href="/login">

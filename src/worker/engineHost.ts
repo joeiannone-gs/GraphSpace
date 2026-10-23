@@ -5,6 +5,8 @@
 import type { ProjectDoc } from '@/doc/types';
 import type { FetchBytes } from '@/engine/datasets';
 import { Session } from '@/engine/session';
+import { getLesson } from '@/lessons';
+import { runChecks } from '@/lessons/runner';
 import { EngineState, FromWorker, ToWorker, modelSignature } from './protocol';
 
 const SLICE_MS = 12;
@@ -21,7 +23,7 @@ export class EngineHost {
   private queue: Promise<void> = Promise.resolve();
 
   constructor(
-    fetchBytes: FetchBytes,
+    private readonly fetchBytes: FetchBytes,
     private readonly post: (msg: FromWorker) => void,
     private readonly now: () => number = () => performance.now(),
   ) {
@@ -97,6 +99,12 @@ export class EngineHost {
       case 'getParams':
         this.post({ t: 'params', requestId: msg.requestId, values: this.session.paramValues() });
         return;
+      case 'runChecks': {
+        const step = getLesson(msg.lessonId)?.steps[msg.step];
+        const results = step ? await runChecks(step, msg.doc, this.fetchBytes) : [];
+        this.post({ t: 'checkResults', requestId: msg.requestId, results });
+        return;
+      }
     }
   }
 

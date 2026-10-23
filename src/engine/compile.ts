@@ -59,8 +59,8 @@ export function isPrimitive(node: DocNode): boolean {
   return !STRUCTURE.has(node.type);
 }
 
-export function compile(doc: ProjectDoc): Compiled {
-  const errors = new Map<Id, NodeError>();
+/** Resolves where values come from, following connections through groups to primitive nodes. */
+export function makeResolver(doc: ProjectDoc) {
   const edgeInto = new Map<string, DocEdge>();
   for (const e of Object.values(doc.edges)) edgeInto.set(portKey(e.to.node, e.to.port), e);
 
@@ -91,6 +91,19 @@ export function compile(doc: ProjectDoc): Compiled {
     if (node.type === 'output') return undefined;
     return { node: node.id, port: from.port, feedback };
   };
+
+  /** The primitive output feeding a node's input port, if connected. */
+  const sourceOf = (nodeId: Id, port: string): Source | undefined => {
+    const e = edgeInto.get(portKey(nodeId, port));
+    return e ? resolve(e.from, e.kind === 'feedback') : undefined;
+  };
+
+  return { edgeInto, resolve, sourceOf };
+}
+
+export function compile(doc: ProjectDoc): Compiled {
+  const errors = new Map<Id, NodeError>();
+  const { edgeInto, resolve } = makeResolver(doc);
 
   const compiled: CompiledNode[] = [];
   let minimize: Id | null = null;

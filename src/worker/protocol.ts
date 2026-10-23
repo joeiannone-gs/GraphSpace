@@ -1,6 +1,7 @@
 /** Messages between the editor (main thread) and the engine worker. */
 import type { Id, ProjectDoc, TensorJSON } from '@/doc/types';
 import type { SessionSnapshot } from '@/engine/session';
+import type { CheckResult } from '@/lessons/types';
 
 export type EngineState = 'idle' | 'training' | 'paused' | 'done';
 
@@ -14,12 +15,15 @@ export type ToWorker =
   /** Forget trained values and start over. */
   | { t: 'reset' }
   | { t: 'generate'; steps: number }
-  | { t: 'getParams'; requestId: number };
+  | { t: 'getParams'; requestId: number }
+  /** Run a lesson step's checks on a document (in a separate session; the live model is untouched). */
+  | { t: 'runChecks'; requestId: number; lessonId: string; step: number; doc: ProjectDoc };
 
 export type FromWorker =
   | { t: 'status'; state: EngineState; step: number; notice?: string }
   | { t: 'snapshot'; version: number; snapshot: SessionSnapshot }
   | { t: 'params'; requestId: number; values: Record<Id, TensorJSON> }
+  | { t: 'checkResults'; requestId: number; results: CheckResult[] }
   | { t: 'error'; message: string };
 
 /**

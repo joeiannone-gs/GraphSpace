@@ -335,8 +335,11 @@ export class Session {
     return this.last?.errors ?? this.compiled?.errors ?? new Map();
   }
 
-  /** Value of a node's output from the most recent run. */
+  /** Value of a node's output from the most recent run (groups and boundary nodes resolve through). */
   valueOf(nodeId: Id, port = 'out'): Tensor | undefined {
-    return this.last?.values.get(portKey(nodeId, port))?.value;
+    const direct = this.last?.values.get(portKey(nodeId, port))?.value;
+    if (direct) return direct;
+    const alias = this.compiled?.aliases.get(portKey(nodeId, port));
+    return alias ? this.last?.values.get(portKey(alias.node, alias.port))?.value : undefined;
   }
 }

@@ -5,6 +5,7 @@ import { Breadcrumb } from './Breadcrumb';
 import { CanvasHost } from './CanvasHost';
 import { useEditor } from './EditorContext';
 import { Header } from './Header';
+import { HelpButton } from './Help';
 import { Inspector } from './Inspector';
 import { Palette } from './Palette';
 import { RunBar } from './RunBar';
@@ -84,9 +85,12 @@ export function EditorShell({
             <div className={styles.panel}>
               <div className={styles.panelHeader}>
                 <span>Info</span>
-                <button className={styles.iconButton} onClick={() => dispatch(uiActions.togglePanel('right'))} aria-label="Hide panel">
-                  »
-                </button>
+                <span style={{ display: 'flex', gap: 4 }}>
+                  <HelpButton />
+                  <button className={styles.iconButton} onClick={() => dispatch(uiActions.togglePanel('right'))} aria-label="Hide panel">
+                    »
+                  </button>
+                </span>
               </div>
               <Inspector />
             </div>

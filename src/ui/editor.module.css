@@ -573,3 +573,127 @@
   font-size: 13px;
   resize: vertical;
 }
+
+.stepDot {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--gs-accent);
+  background: transparent;
+  cursor: pointer;
+}
+
+.stepDot[data-state='done'] {
+  background: var(--gs-accent);
+}
+
+.stepDot[data-state='current'] {
+  background: var(--gs-accent-soft);
+  box-shadow: 0 0 0 3px rgb(106 191 75 / 0.3);
+}
+
+.stepDot:disabled {
+  border-color: var(--gs-border);
+  cursor: default;
+}
+
+.checklist {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.checklist li {
+  padding: 3px 0;
+}
+
+.checklist li[data-status='pass'] > span {
+  color: #4caf50;
+}
+
+.checklist li[data-status='fail'] > span {
+  color: #ff6b6b;
+}
+
+.checklist li[data-status='skipped'] {
+  color: var(--gs-muted);
+}
+
+.popover {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  z-index: 10;
+  width: 340px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--gs-panel);
+  border: 1px solid var(--gs-border);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
+  font-size: 13px;
+}
+
+.shareList {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.shareList li {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.shareList input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-bg);
+  color: var(--gs-text);
+  font-size: 12px;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 80dvh;
+  overflow-y: auto;
+  padding: 18px 22px;
+  border-radius: 10px;
+  background: var(--gs-panel);
+  font-size: 14px;
+}
+
+.modal h2 {
+  margin: 0 0 8px;
+  font-weight: 400;
+}
+
+.modal h3 {
+  margin: 14px 0 4px;
+  font-size: 15px;
+}
+
+.modal kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--gs-border);
+  font-size: 12px;
+}

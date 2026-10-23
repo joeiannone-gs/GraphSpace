@@ -78,4 +78,27 @@ export const migrations: string[] = [
   );
   CREATE INDEX library_owner ON library_nodes(owner_id);
   `,
+  `
+  CREATE TABLE lesson_progress (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lesson_id TEXT NOT NULL,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    step INTEGER NOT NULL DEFAULT 0,
+    completed_at INTEGER,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, lesson_id)
+  );
+
+  -- Read-only links to a snapshot of a project.
+  CREATE TABLE share_links (
+    token TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    snapshot_hash TEXT NOT NULL REFERENCES snapshots(hash),
+    title TEXT NOT NULL,
+    created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    revoked_at INTEGER
+  );
+  CREATE INDEX share_project ON share_links(project_id);
+  `,
 ];
