@@ -7,7 +7,7 @@ import { Container, FederatedPointerEvent } from 'pixi.js';
 import type { Id, ProjectDoc, Vec2 } from '@/doc/types';
 import type { SessionSnapshot, TensorSnap } from '@/engine/session';
 import { getDef, portsOf } from '@/nodes/registry';
-import { DrawColors, drawImages, drawMessage, drawScatter, drawSparkline, drawTensor, drawTextBlock, formatNumber } from './displays/draw';
+import { DrawColors, drawImages, drawMessage, drawNetwork, drawScatter, drawSparkline, drawTensor, drawTextBlock, formatNumber } from './displays/draw';
 import { NODE_RADIUS, chooseRoute, fitInside, groupRadius, portOffsets } from './geometry';
 import type { CanvasTheme } from './theme';
 import { EdgeView } from './views/EdgeView';
@@ -22,6 +22,8 @@ export interface SceneUi {
 }
 
 const BOUNDARY_RADIUS = NODE_RADIUS * 0.55;
+/** Network pictures need room to be readable. */
+const NETWORK_RADIUS = NODE_RADIUS * 1.6;
 
 export interface SceneEvents {
   nodeDown(view: NodeView, e: FederatedPointerEvent): void;
@@ -75,7 +77,13 @@ export class Scene {
   private model(doc: ProjectDoc, id: Id, childCount: number): NodeModel {
     const node = doc.nodes[id];
     const radius =
-      node.type === 'composite' ? groupRadius(childCount) : node.type === 'input' || node.type === 'output' ? BOUNDARY_RADIUS : NODE_RADIUS;
+      node.type === 'composite'
+        ? groupRadius(childCount)
+        : node.type === 'input' || node.type === 'output'
+          ? BOUNDARY_RADIUS
+          : getDef(node.type)?.display === 'network'
+            ? NETWORK_RADIUS
+            : NODE_RADIUS;
     const { inputs, outputs } = portsOf(doc, node);
     const dir = doc.layout.direction;
     const inPos = portOffsets(radius, inputs.length, 'in', dir);
@@ -389,6 +397,20 @@ export class Scene {
         return v
           ? (ctx, w, h) => (drawSparkline(ctx, history, v.data[0], node.type === 'accuracy' ? `accuracy ${formatNumber(v.data[0] * 100)}%` : '', w, h, c), true)
           : null;
+      }
+      case 'network': {
+        if (node.type === 'graph_data') {
+          const adj = t(ns.outputs.adj);
+          const pos = t(ns.outputs.pos);
+          const y = t(ns.outputs.y);
+          const labeled = t(ns.outputs.labeled);
+          const ring = labeled ? new Set(Array.from(labeled.data, Math.round)) : undefined;
+          return adj && pos ? (ctx, w, h) => (drawNetwork(ctx, adj, pos, y, ring, w, h, c), true) : null;
+        }
+        const adj = t(ns.inputs.adj);
+        const pos = t(ns.inputs.pos);
+        const color = t(ns.inputs.color);
+        return adj && pos ? (ctx, w, h) => (drawNetwork(ctx, adj, pos, color, undefined, w, h, c), true) : null;
       }
       case 'text': {
         const content = snap.texts[id];

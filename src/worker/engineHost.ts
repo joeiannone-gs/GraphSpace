@@ -159,7 +159,7 @@ export class EngineHost {
     this.lastSnapshot = this.now();
     const wideNodes = new Set(
       Object.values(this.doc?.nodes ?? {})
-        .filter((n) => n.type === 'image')
+        .filter((n) => n.type === 'image' || n.type === 'network_plot' || n.type === 'graph_data')
         .map((n) => n.id),
     );
     this.post({ t: 'snapshot', version: this.version, snapshot: this.session.snapshot({ wideNodes }) });

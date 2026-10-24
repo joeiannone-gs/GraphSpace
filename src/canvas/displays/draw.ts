@@ -335,3 +335,65 @@ export function drawTextBlock(ctx: CanvasRenderingContext2D, content: string, w:
   const shown = lines.slice(-maxLines);
   shown.forEach((l, i) => ctx.fillText(l, pad, pad + i * size * 1.2));
 }
+
+/**
+ * A network: edges where `adj` is non-zero, nodes at `pos`. Colors come from `color` (class scores →
+ * class colors, one number per node → shading); `ring` marks some nodes (e.g. the labeled ones).
+ */
+export function drawNetwork(
+  ctx: CanvasRenderingContext2D,
+  adj: TensorSnap,
+  pos: TensorSnap,
+  color: TensorSnap | undefined,
+  ring: Set<number> | undefined,
+  w: number,
+  h: number,
+  c: DrawColors,
+) {
+  const n = pos.shape[0];
+  if (!n || adj.shape[0] !== n) return;
+  const pad = Math.min(w, h) * 0.08;
+  const px = (i: number) => pad + ((pos.data[2 * i] + 1) / 2) * (w - 2 * pad);
+  const py = (i: number) => pad + ((pos.data[2 * i + 1] + 1) / 2) * (h - 2 * pad);
+  ctx.strokeStyle = c.muted;
+  ctx.globalAlpha = 0.7;
+  ctx.lineWidth = Math.max(1.2, w * 0.007);
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const k = i * n + j;
+      if (k < adj.data.length && adj.data[k] > 0) {
+        ctx.moveTo(px(i), py(i));
+        ctx.lineTo(px(j), py(j));
+      }
+    }
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  const width = color ? (color.shape.length >= 2 ? color.shape[color.shape.length - 1] : 1) : 0;
+  const { min, max } = color?.stats ?? { min: 0, max: 1 };
+  const r = Math.max(3, Math.min(w, h) * (n > 40 ? 0.022 : 0.03));
+  for (let i = 0; i < n; i++) {
+    let fill = c.text;
+    if (color && width > 1) {
+      let best = 0;
+      for (let k = 1; k < width; k++) if (color.data[i * width + k] > color.data[i * width + best]) best = k;
+      fill = CLASS_COLORS[best % CLASS_COLORS.length];
+    } else if (color && width === 1) {
+      const t = (color.data[i] - min) / (max - min || 1);
+      const [r0, g0, b0] = c.positive;
+      fill = `rgba(${r0},${g0},${b0},${0.15 + 0.85 * t})`;
+    }
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.arc(px(i), py(i), r, 0, Math.PI * 2);
+    ctx.fill();
+    if (ring?.has(i)) {
+      ctx.strokeStyle = c.text;
+      ctx.lineWidth = r * 0.5;
+      ctx.beginPath();
+      ctx.arc(px(i), py(i), r * 1.7, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}

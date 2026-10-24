@@ -3,6 +3,7 @@ import type { DocNode, ProjectDoc } from '@/doc/types';
 import * as data from './defs/data';
 import * as diffusion from './defs/diffusion';
 import * as display from './defs/display';
+import * as graphs from './defs/graphs';
 import * as linalg from './defs/linalg';
 import * as loss from './defs/loss';
 import * as math from './defs/math';
@@ -50,9 +51,12 @@ const ALL: NodeDef<never>[] = [
   diffusion.diffusionNoise,
   diffusion.ddpmStep,
   diffusion.randn,
+  graphs.graphData,
+  graphs.pickRows,
   display.peek,
   display.scatter,
   display.image,
+  graphs.networkPlot,
   structure.composite,
   structure.input,
   structure.output,

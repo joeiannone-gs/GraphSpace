@@ -65,6 +65,7 @@ const CATEGORY_COLORS: Record<Category, number> = {
   Training: 0xf1c232,
   Text: 0xf56305,
   Diffusion: 0xb36bff,
+  Graphs: 0xf56305,
   Display: 0xb36bff,
   Structure: 0x009aa6,
 };

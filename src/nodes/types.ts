@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import type { Rng } from '@/engine/rng';
 import type { Tape, Var } from '@/engine/tape';
+import type { GraphDataset } from '@/engine/graphs';
 import type { Tensor } from '@/engine/tensor';
 
 export interface PortDef {
@@ -22,11 +23,12 @@ export type Category =
   | 'Training'
   | 'Text'
   | 'Diffusion'
+  | 'Graphs'
   | 'Display'
   | 'Structure';
 
 /** How the canvas draws a node's live value. */
-export type DisplayKind = 'value' | 'tensor' | 'parameter' | 'dataset' | 'scatter' | 'points' | 'image' | 'loss' | 'text' | 'none';
+export type DisplayKind = 'value' | 'tensor' | 'parameter' | 'dataset' | 'scatter' | 'points' | 'image' | 'loss' | 'text' | 'network' | 'none';
 
 export type FieldKind = 'number' | 'int' | 'shape' | 'axes' | 'select' | 'bool' | 'text' | 'longtext' | 'tensor' | 'slice';
 
@@ -70,6 +72,8 @@ export interface RunEnv {
   rng: Rng;
   parameter(nodeId: string, p: ParameterParams): Var;
   batch(nodeId: string, p: DatasetParams): { x: Tensor; y: Tensor };
+  /** A loaded graph dataset (see engine/graphs). */
+  graph(source: string): GraphDataset;
   /** Scratch state that persists across runs for one node (iterators, counters). */
   state<T>(nodeId: string, init: () => T): T;
 }

@@ -7,6 +7,7 @@ import type { Id, ProjectDoc, TensorJSON } from '@/doc/types';
 import type { DatasetParams, ParameterParams, RunEnv, RunMode } from '@/nodes/types';
 import { Compiled, NodeError, compile, portKey } from './compile';
 import { parseCsv } from './csv';
+import { GraphDataset, loadGraph } from './graphs';
 import { BatchIterator, Dataset, FetchBytes, loadDataset } from './datasets';
 import { Optimizer } from './optim';
 import { Rng, hashString } from './rng';
@@ -95,6 +96,7 @@ export class Session {
   private doc: ProjectDoc | null = null;
   private compiled: Compiled | null = null;
   private datasets = new Map<string, Dataset>();
+  private graphs = new Map<string, GraphDataset>();
   private datasetErrors = new Map<string, string>();
   private iterators = new Map<string, BatchIterator>();
   private params = new Map<Id, { key: string; value: Tensor }>();
@@ -124,6 +126,19 @@ export class Session {
       const p = n.params as unknown as DatasetParams;
       if (n.type === 'dataset' && p.source !== 'csv') sources.add(String(p.source));
     }
+    const graphSources = new Set(this.compiled.order.filter((n) => n.type === 'graph_data').map((n) => String(n.params.source)));
+    await Promise.all(
+      [...graphSources]
+        .filter((s) => !this.graphs.has(s))
+        .map(async (s) => {
+          try {
+            this.graphs.set(s, await loadGraph(s, this.fetchBytes));
+            this.datasetErrors.delete(`graph:${s}`);
+          } catch (err) {
+            this.datasetErrors.set(`graph:${s}`, err instanceof Error ? err.message : String(err));
+          }
+        }),
+    );
     await Promise.all(
       [...sources]
         .filter((s) => !this.datasets.has(s))
@@ -184,6 +199,11 @@ export class Session {
           this.iterators.set(key, it);
         }
         return mode === 'train' ? it.next() : it.peek();
+      },
+      graph: (source: string) => {
+        const g = this.graphs.get(source);
+        if (!g) throw new Error(this.datasetErrors.get(`graph:${source}`) ?? `Graph "${source}" isn't loaded`);
+        return g;
       },
       state: <T>(nodeId: string, init: () => T): T => {
         if (!this.state.has(nodeId)) this.state.set(nodeId, init());

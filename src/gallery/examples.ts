@@ -2,7 +2,7 @@
 import { DocBuilder, type Out } from '@/doc/builder';
 import type { ProjectDoc } from '@/doc/types';
 import { CORPORA, vocabOf } from '@/engine/text';
-import { layerNorm, linear, mlp, mse, timestepEmbedding, transformerBlock } from '@/library/builtin';
+import { graphConv, layerNorm, linear, mlp, mse, timestepEmbedding, transformerBlock } from '@/library/builtin';
 
 export interface Example {
   slug: string;
@@ -275,7 +275,99 @@ export const classicMlp: Example = {
   build: () => buildClassicMlp(),
 };
 
-export const examples: Example[] = [fitALine, xorMlp, classicMlp, mnistClassifier, charTransformer, diffusion2d];
+/** A two-layer graph convolutional network that classifies every node from a few labeled ones. */
+function gcnModel(b: DocBuilder, label: string, inFeatures: number, hidden: number, classes: number) {
+  return b.group(label, (g) => {
+    const x = g.input('x', 0);
+    const adj = g.input('adj', 1);
+    const l1 = g.insert(graphConv.build({ inFeatures, outFeatures: hidden }));
+    g.wire(x, l1, 'x');
+    g.wire(adj, l1, 'adj');
+    const act = g.add('relu');
+    g.wire([l1, 'y'], act, 'x');
+    const l2 = g.insert(graphConv.build({ inFeatures: hidden, outFeatures: classes }));
+    g.wire(act, l2, 'x');
+    g.wire(adj, l2, 'adj');
+    g.wire([l2, 'y'], g.output('scores'), 'in');
+  });
+}
+
+/** Loss on the labeled nodes only, accuracy on everyone, and a picture of the predictions. */
+function nodeClassificationHead(b: DocBuilder, data: string, scores: Out, prefix = '') {
+  const picked = b.add('pick_rows', {}, { label: `${prefix}labeled scores` });
+  b.wire(scores, picked, 'x');
+  b.wire([data, 'labeled'], picked, 'ids');
+  const ce = b.add('softmax_cross_entropy', {}, { label: `${prefix}loss` });
+  b.wire(picked, ce, 'logits');
+  b.wire([data, 'yLabeled'], ce, 'targets');
+  const acc = b.add('accuracy', {}, { label: `${prefix}accuracy` });
+  b.wire(scores, acc, 'scores');
+  b.wire([data, 'y'], acc, 'targets');
+  const plot = b.add('network_plot', {}, { label: `${prefix}prediction` });
+  b.wire([data, 'adj'], plot, 'adj');
+  b.wire([data, 'pos'], plot, 'pos');
+  b.wire(scores, plot, 'color');
+  return { ce, acc };
+}
+
+export function buildKarateGcn() {
+  const b = new DocBuilder();
+  b.doc.layout = { direction: 'right' };
+  b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.01, steps: 300 };
+  b.doc.info.description =
+    'In 1977 a university karate club split in two after a dispute between its instructor (**Mr. Hi**) and its administrator (the **Officer**). Wayne Zachary had recorded who was friends with whom. Here only the two leaders are labeled (the ringed nodes); the **graph neural network** has to work out everyone else’s side from the friendships alone. Each Graph Convolution lets a member listen to their friends; two of them reach friends of friends.';
+  const data = b.add('graph_data', { source: 'karate' }, { label: 'Karate club' });
+  const model = gcnModel(b, 'Graph neural network', 34, 16, 2);
+  b.wire([data, 'x'], model, 'x');
+  b.wire([data, 'adj'], model, 'adj');
+  const { ce } = nodeClassificationHead(b, data, [model, 'scores']);
+  const min = b.add('minimize');
+  b.wire(ce, min, 'loss');
+  return b.build();
+}
+
+export function buildCommunitiesGnnVsMlp() {
+  const b = new DocBuilder();
+  b.doc.layout = { direction: 'right' };
+  b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.01, steps: 400 };
+  b.doc.info.description =
+    'Sixty people in three communities. Each person has a few noisy traits that only *hint* at their community, and only two people per community are labeled. Two models train side by side on the same data: an **MLP** that looks at each person alone, and a **graph neural network** that also listens to their friends. Compare the two accuracies and the two network pictures.';
+  const data = b.add('graph_data', { source: 'communities' }, { label: 'Social network' });
+  const alone = b.group('MLP (each person alone)', (g) => {
+    const x = g.input('x');
+    const net = g.insert(mlp.build({ inFeatures: 4, hidden: 16, outFeatures: 3 }));
+    g.wire(x, net, 'x');
+    g.wire([net, 'y'], g.output('scores'), 'in');
+  });
+  b.wire([data, 'x'], alone, 'x');
+  const gnn = gcnModel(b, 'GNN (uses friendships)', 4, 16, 3);
+  b.wire([data, 'x'], gnn, 'x');
+  b.wire([data, 'adj'], gnn, 'adj');
+  const m = nodeClassificationHead(b, data, [alone, 'scores'], 'MLP ');
+  const g = nodeClassificationHead(b, data, [gnn, 'scores'], 'GNN ');
+  const total = b.add('add', {}, { label: 'both losses' });
+  b.wire(m.ce, total, 'a');
+  b.wire(g.ce, total, 'b');
+  const min = b.add('minimize');
+  b.wire(total, min, 'loss');
+  return b.build();
+}
+
+export const karateGcn: Example = {
+  slug: 'karate-gnn',
+  title: 'Karate club: a graph neural network',
+  summary: 'Two members are labeled; a GNN infers everyone else’s side from the friendships.',
+  build: () => buildKarateGcn(),
+};
+
+export const communitiesGnn: Example = {
+  slug: 'communities-gnn',
+  title: 'Why the graph matters: GNN vs MLP',
+  summary: 'Same noisy data, two models: the one that listens to friends wins.',
+  build: () => buildCommunitiesGnnVsMlp(),
+};
+
+export const examples: Example[] = [fitALine, xorMlp, classicMlp, mnistClassifier, karateGcn, communitiesGnn, charTransformer, diffusion2d];
 
 export function getExample(slug: string): Example | undefined {
   return examples.find((e) => e.slug === slug);

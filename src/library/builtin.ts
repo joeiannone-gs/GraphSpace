@@ -439,6 +439,42 @@ export const timestepEmbedding: BuiltinGroup = {
     ),
 };
 
+export const graphConv: BuiltinGroup = {
+  id: 'graph_conv',
+  label: 'Graph Convolution',
+  explanation:
+    'One layer of a graph neural network (GCN): every node averages its own features with its neighbours’ (`adj · x`), then a learned matrix W turns the result into new features. Stack two and each node hears from friends of friends.',
+  version: 1,
+  fields: [
+    { key: 'inFeatures', label: 'Inputs', kind: 'int', min: 1 },
+    { key: 'outFeatures', label: 'Outputs', kind: 'int', min: 1 },
+  ],
+  defaults: { inFeatures: 4, outFeatures: 16 },
+  build: ({ inFeatures, outFeatures }) =>
+    make(
+      'graph_conv',
+      'Graph Convolution',
+      1,
+      (b) => {
+        const x = b.input('x', 0);
+        const adj = b.input('adj', 1);
+        const W = b.add('parameter', { shape: [inFeatures, outFeatures], init: 'glorot' }, { label: 'W' });
+        const transform = b.add('matmul', {}, { label: 'x · W' });
+        b.wire(x, transform, 'a');
+        b.wire(W, transform, 'b');
+        const mix = b.add('matmul', {}, { label: 'adj · (x · W)' });
+        b.wire(adj, mix, 'a');
+        b.wire(transform, mix, 'b');
+        const bias = b.add('parameter', { shape: [outFeatures], init: 'zeros' }, { label: 'b' });
+        const out = b.add('add');
+        b.wire(mix, out, 'a');
+        b.wire(bias, out, 'b');
+        b.wire(out, b.output('y'), 'in');
+      },
+      { inFeatures, outFeatures },
+    ),
+};
+
 export const builtinGroups: BuiltinGroup[] = [
   linear,
   mlp,
@@ -453,6 +489,7 @@ export const builtinGroups: BuiltinGroup[] = [
   addNorm,
   transformerBlock,
   timestepEmbedding,
+  graphConv,
 ];
 
 export function getBuiltin(id: string): BuiltinGroup | undefined {

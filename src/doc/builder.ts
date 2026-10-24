@@ -2,7 +2,7 @@
  * A small DSL for writing documents in code: lesson starters, gallery examples, built-in groups
  * and tests. Nodes without an explicit position are laid out automatically in layers.
  */
-import { defaultParams } from '@/nodes/registry';
+import { defaultParams, getDef } from '@/nodes/registry';
 import { Subtree, cloneSubtree } from './clone';
 import { newId } from './ids';
 import { DocEdge, Id, ProjectDoc, Vec2, emptyDoc } from './types';
@@ -109,6 +109,7 @@ function layoutRadius(doc: ProjectDoc, id: Id, childCount: Map<Id, number>): num
   const n = doc.nodes[id];
   if (n.type === 'composite') return 300 * Math.min(3.5, Math.max(1.25, 0.8 + 0.35 * Math.sqrt(childCount.get(id) ?? 0)));
   if (n.type === 'input' || n.type === 'output') return 165;
+  if (getDef(n.type)?.display === 'network') return 480;
   return 300;
 }
 
