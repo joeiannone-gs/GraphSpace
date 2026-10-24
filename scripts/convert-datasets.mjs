@@ -1,5 +1,7 @@
 // One-time conversion of the old server's public datasets into browser-loadable files.
-// Usage (needs protobufjs): node scripts/convert-datasets.mjs legacy/shared/protos legacy/computeserver/server/EBS/public public/datasets
+// It ran once against the old protobuf schemas and data files, which now live only in git history
+// (see commit e3d3d67: legacy/shared/protos and legacy/computeserver/server/EBS/public).
+// Usage (needs protobufjs): node scripts/convert-datasets.mjs <protos dir> <EBS public dir> public/datasets
 import protobuf from 'protobufjs';
 import fs from 'node:fs';
 import path from 'node:path';

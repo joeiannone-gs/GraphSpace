@@ -1,68 +1,69 @@
-# Deploying GraphSpace
+# Deploying GraphSpace (Google Cloud)
 
-One small EC2 instance in your project's selected AWS Region runs the app (`node server.js` from
-Next's standalone build) behind Caddy, which gets the TLS certificate automatically. Releases and
-nightly database backups go to a private S3 bucket. There is no SSH: manage the server with SSM
-Session Manager.
+One small Compute Engine VM runs the app (`node server.js` from Next's standalone build) behind
+Caddy, which gets the TLS certificate automatically. The database is a SQLite file on the VM's
+disk, backed up nightly to Cloud Storage. Everything is plain `gcloud`; settings live in
+`deploy/config.sh` (project from your gcloud config, `us-east4-c`, `e2-small`, VM `graphspace`).
 
-Rough cost: a `t3.small` with standard CPU credits plus 20 GB of gp3 and a few MB of S3 —
-about $17/month (a `t3.micro` halves the instance part).
+Rough cost: about $19/month (e2-small ~$13, static IP ~$4, 20 GB disk ~$2).
 
-## Before you start
-
-1. **Region.** All resources must be in your project's selected Region. Check it in
-   AWS Settings > View all projects > Overview > Additional Info > Region (if you can't, look at
-   `~/.aws/config`). Use that Region below.
-2. **Plan and spend limit.** Run `aws freetier get-account-plan-state` to see whether the account
-   is on the free or paid plan. If the project has a spend limit, make sure ~$20/month fits.
-3. **Credentials.** `aws login`, then `aws sts get-caller-identity` should work.
-4. **Pulumi.** Install the Pulumi CLI and `pulumi login` (Pulumi Cloud, or `pulumi login --local`).
-5. **A hostname.** Pick one, e.g. `graphspace.josephiannone.com`, and know where its DNS is managed.
-
-## First deploy
+## First time
 
 ```bash
-cd deploy/pulumi
-npm ci
-pulumi stack init prod
-pulumi config set aws:region <your-region>
-pulumi config set domain graphspace.josephiannone.com
-pulumi config set --secret inviteCode '<something students will type>'
-pulumi up
+deploy/provision.sh
 ```
 
-`pulumi up` prints `publicIp` and `dnsRecord`. Create that **A record** at your DNS provider. Caddy
-requests the certificate as soon as the name resolves to the instance (first boot takes a few
-minutes: it installs Node, Caddy and the AWS CLI).
+It reserves a static IP, opens ports 80/443 for VMs tagged `graphspace` (if your account can't
+create firewall rules it prints the one command to run in Cloud Shell), creates the VM, waits for
+its startup script to install Node 24, Caddy and sqlite3, generates the sign-up **invite code**
+(saved in `~/.config/graphspace/invite-code`), and pushes the server configuration.
 
-Then deploy the app from the repo root (a clean checkout on Linux x86_64, because the SQLite
-driver is a native module built for the machine that runs `npm ci`):
+Then deploy the app (from a clean checkout on Linux x86_64, because the SQLite driver is a native
+module built by `npm ci`):
 
 ```bash
-export AWS_REGION=<your-region>
-export GS_BUCKET=$(cd deploy/pulumi && pulumi stack output bucketName)
-export GS_INSTANCE_ID=$(cd deploy/pulumi && pulumi stack output instanceId)
 deploy/release.sh
 ```
 
-`release.sh` builds, uploads `releases/<commit>.tgz`, and runs `remote-deploy.sh` on the instance
-through SSM: it unpacks the release, switches the `current` symlink, restarts the service, checks
-`/api/health`, and rolls back to the previous release if the check fails.
+The site is at `https://<static-ip-with-dashes>.sslip.io`. sslip.io resolves that name to the IP,
+so HTTPS works without touching DNS.
+
+## Your own hostname
+
+Add an **A record** for e.g. `graphspace.josephiannone.com` pointing at the static IP (for
+josephiannone.com that's in Squarespace's DNS settings), wait for it to resolve, then:
+
+```bash
+deploy/set-domain.sh graphspace.josephiannone.com
+```
+
+The sslip.io address keeps working too.
 
 ## Day to day
 
-- **Create accounts without the invite code:** open a Session Manager shell and run
+- **Deploy:** `deploy/release.sh` builds the current commit, copies it to the VM and switches to
+  it. If `/api/health` doesn't answer within 40 seconds it switches back to the previous release.
+  The five newest releases are kept in `/opt/graphspace/releases`.
+- **Server config changes** (units, Caddy, scripts in `deploy/`): `deploy/push-config.sh`
+  (release.sh does this too).
+- **Shell:** `gcloud compute ssh graphspace --zone us-east4-c`.
+- **Logs:** `journalctl -u graphspace -f` and `journalctl -u caddy -f` on the VM.
+- **Accounts without the invite code:**
   `cd /opt/graphspace/current && sudo -u graphspace env DATABASE_PATH=/var/lib/graphspace/gs.db node cli/create-user.mjs student@example.com "Name"`
-  (it asks for the password).
-  (Or share the invite code; change it with `pulumi config set --secret inviteCode … && pulumi up`, then redeploy.)
-- **Logs:** `journalctl -u graphspace -f` and `journalctl -u caddy -f`.
-- **Backups:** `graphspace-backup.timer` runs nightly at 03:17 UTC and copies a consistent snapshot
-  of the database to `s3://<bucket>/backups/YYYY/MM/DD/`, kept for 30 days. Run one now with
-  `sudo systemctl start graphspace-backup`.
-- **Restore a backup:** stop the service, `aws s3 cp` the backup down, `gunzip` it over
-  `/var/lib/graphspace/gs.db` (owned by `graphspace`), start the service.
+- **Change the invite code:** edit `~/.config/graphspace/invite-code`, re-run `deploy/provision.sh`,
+  then `gcloud compute ssh graphspace --zone us-east4-c --command 'sudo systemctl restart graphspace'`.
+- **Backups:** `graphspace-backup.timer` copies a consistent snapshot of the database to
+  `gs://hft-evolve-storage-2/graphspace/backups/YYYY/MM/DD/` every night at 03:17 UTC and deletes
+  ones older than 30 days. Run one now with `sudo systemctl start graphspace-backup`.
+- **Restore:** `sudo systemctl stop graphspace`, copy a backup down with `gcloud storage cp`,
+  `gunzip` it to `/var/lib/graphspace/gs.db` (owner `graphspace`), `sudo systemctl start graphspace`.
 
 ## Tearing down
 
-`pulumi destroy` removes the instance, Elastic IP, role, security group and parameter. The bucket is
-kept unless it's empty (it holds your backups); delete it yourself when you're sure.
+```bash
+gcloud compute instances delete graphspace --zone us-east4-c
+gcloud compute addresses delete graphspace-ip --region us-east4
+gcloud compute firewall-rules delete graphspace-web
+```
+
+Backups in the bucket stay until you delete them.

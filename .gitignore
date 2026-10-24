@@ -1,6 +1,5 @@
 # Dependencies and build output
 node_modules/
-deploy/pulumi/node_modules/
 .next/
 out/
 next-env.d.ts
@@ -30,8 +29,3 @@ id_rsa*
 .vscode/
 .idea/
 
-# Python leftovers in legacy/
-__pycache__/
-*.pyc
-venv/
-.venv/

@@ -119,8 +119,7 @@ npm run e2e                                     # browser tests (Playwright)
 | `src/server` | SQLite, auth, data access |
 | `public/datasets` | Bundled datasets (2-D points, 200 MNIST digits) |
 | `src/lessons`, `src/gallery`, `src/library` | Lessons, example projects, built-in groups (layers and losses) |
-| `deploy/` | One-instance AWS deployment (Pulumi, Caddy, systemd, S3 backups); see `deploy/README.md` |
-| `legacy/` | The previous Python/TensorFlow server and React frontend, kept for reference |
+| `deploy/` | One Google Compute Engine VM behind Caddy, deployed with gcloud scripts; see `deploy/README.md` |
 
 <div align="center">
   <sub>Built with ❤️ by the GraphSpace Team</sub>

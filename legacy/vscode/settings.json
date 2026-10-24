@@ -1,9 +1,0 @@
-{
-    "eslint.useFlatConfig": true,
-    "protoc": {
-        "options": [
-            "--proto_path=${workspaceRoot}/gs-app/app/proto",
-        ]
-    },
-    "python.analysis.typeCheckingMode": "off"
-}
