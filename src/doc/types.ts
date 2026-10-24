@@ -52,13 +52,17 @@ export interface TrainingConfig {
   momentum: number;
 }
 
+/** auto: straight where a straight line is clear, right angles where it would cross nodes or go backwards. */
+export type EdgeStyle = 'auto' | 'orthogonal' | 'straight';
+
 export interface ProjectDoc {
   schemaVersion: 1;
   nodes: Record<Id, DocNode>;
   edges: Record<Id, DocEdge>;
   training: TrainingConfig;
   generate: { steps: number };
-  layout: { direction: 'up' | 'right' };
+  /** Flow direction, and how connections are drawn (automatic when unset). */
+  layout: { direction: 'up' | 'right'; edges?: EdgeStyle };
   info: { description: string };
 }
 

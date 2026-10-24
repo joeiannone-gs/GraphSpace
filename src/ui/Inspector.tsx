@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { cloneSubtree, extractSubtree } from '@/doc/clone';
 import { newId } from '@/doc/ids';
-import type { DocNode, Id, ProjectDoc } from '@/doc/types';
+import type { DocNode, EdgeStyle, Id, ProjectDoc } from '@/doc/types';
 import { formatNumber, shapeLabel } from '@/canvas/displays/draw';
 import type { SessionSnapshot } from '@/engine/session';
 import { getBuiltin } from '@/library/builtin';
@@ -228,6 +228,21 @@ function ProjectInspector({ doc }: { doc: ProjectDoc }) {
         }}
         value={doc.layout.direction}
         onChange={(v) => dispatch(docActions.setDirection(v as 'up' | 'right'))}
+      />
+      <Field
+        spec={{
+          key: 'edges',
+          label: 'Connections',
+          kind: 'select',
+          options: [
+            { value: 'auto', label: 'Automatic' },
+            { value: 'orthogonal', label: 'Always right angles' },
+            { value: 'straight', label: 'Always straight' },
+          ],
+          help: 'Automatic draws a straight line unless it would cross a node.',
+        }}
+        value={doc.layout.edges ?? 'auto'}
+        onChange={(v) => dispatch(docActions.setEdgeStyle(v as EdgeStyle))}
       />
     </div>
   );

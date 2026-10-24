@@ -7,7 +7,7 @@
  */
 import { Subtree, descendants } from '@/doc/clone';
 import { newId as defaultNewId } from '@/doc/ids';
-import type { DocEdge, DocNode, Id, PortRef, ProjectDoc, Vec2 } from '@/doc/types';
+import type { DocEdge, DocNode, EdgeStyle, Id, PortRef, ProjectDoc, Vec2 } from '@/doc/types';
 import { defaultParams, getDef, portsOf } from '@/nodes/registry';
 
 type NewId = () => string;
@@ -254,6 +254,10 @@ export function setDescription(doc: ProjectDoc, description: string) {
 
 export function setDirection(doc: ProjectDoc, direction: ProjectDoc['layout']['direction']) {
   doc.layout.direction = direction;
+}
+
+export function setEdgeStyle(doc: ProjectDoc, edges: EdgeStyle) {
+  doc.layout.edges = edges;
 }
 
 /** Nodes directly inside a scope (null = top level). */

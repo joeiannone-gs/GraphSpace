@@ -32,9 +32,9 @@ export class EdgeView {
     };
   }
 
-  draw(start: Vec2, end: Vec2, direction: Direction, theme: CanvasTheme, opts: { selected: boolean; gradient: number | null }) {
+  draw(start: Vec2, end: Vec2, direction: Direction, theme: CanvasTheme, opts: { selected: boolean; gradient: number | null; straight: boolean }) {
     const feedback = this.edge.kind === 'feedback';
-    this.points = routeEdge(start, end, direction, this.lane);
+    this.points = opts.straight && !feedback ? [start, end] : routeEdge(start, end, direction, this.lane);
     const g = this.g;
     g.clear();
     if (opts.gradient !== null && !feedback) {

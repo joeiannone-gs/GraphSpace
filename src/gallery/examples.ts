@@ -1,5 +1,5 @@
 /** Example projects, written with the builder. Used by the sandbox, the gallery and lessons. */
-import { DocBuilder } from '@/doc/builder';
+import { DocBuilder, type Out } from '@/doc/builder';
 import type { ProjectDoc } from '@/doc/types';
 import { CORPORA, vocabOf } from '@/engine/text';
 import { layerNorm, linear, mlp, mse, timestepEmbedding, transformerBlock } from '@/library/builtin';
@@ -198,7 +198,84 @@ export const diffusion2d: Example = {
   build: () => buildDiffusion2d(),
 };
 
-export const examples: Example[] = [fitALine, xorMlp, mnistClassifier, charTransformer, diffusion2d];
+/**
+ * The classic picture of a neural network: every neuron its own node, every weight its own
+ * Parameter (with a chart of its value over training), connections fanning between layers.
+ */
+export function buildClassicMlp(opts: { sizes?: number[]; source?: string; scale?: number } = {}) {
+  const sizes = opts.sizes ?? [2, 4, 4, 2];
+  const b = new DocBuilder();
+  b.doc.layout = { direction: 'right' };
+  // Slow enough to watch every weight's chart move.
+  b.doc.training = { ...b.doc.training, optimizer: 'adam', lr: 0.01, steps: 2000 };
+  b.doc.info.description =
+    'A neural network drawn the classic way: each circle in the middle is one **neuron**. Double-click a neuron to see inside: it multiplies each input by its own weight (θ), adds them up with a bias, and squashes the sum with tanh. Press **Train** and watch every weight’s chart move as the network learns to separate the two moons.';
+  const data = b.add('dataset', { source: opts.source ?? 'moons', batchSize: 0 }, { label: 'Moons' });
+  let prev: Out[] = Array.from({ length: sizes[0] }, (_, i) => {
+    const x = b.add('slice', { spec: `:, ${i}:${i + 1}` }, { label: `x${i + 1}` });
+    b.wire([data, 'x'], x, 'x');
+    return x;
+  });
+  sizes.slice(1).forEach((count, li) => {
+    const output = li === sizes.length - 2;
+    prev = Array.from({ length: count }, (_, j): Out => {
+      const inputs = prev;
+      const neuron = b.group(output ? `out ${j + 1}` : `h${li + 1}.${j + 1}`, (g) => {
+        const ins = inputs.map((_, k) => g.input(`in${k}`, k));
+        const products = ins.map((x, k) => {
+          const w = g.add('parameter', { shape: [1], init: 'normal', scale: opts.scale ?? 0.8 }, { label: `w${k + 1}` });
+          const m = g.add('multiply');
+          g.wire(x, m, 'a');
+          g.wire(w, m, 'b');
+          return m;
+        });
+        let total: string = products[0];
+        for (const p of products.slice(1)) {
+          const a = g.add('add');
+          g.wire(total, a, 'a');
+          g.wire(p, a, 'b');
+          total = a;
+        }
+        const bias = g.add('parameter', { shape: [1], init: 'zeros' }, { label: 'b' });
+        const z = g.add('add', {}, { label: 'z' });
+        g.wire(total, z, 'a');
+        g.wire(bias, z, 'b');
+        let result: string = z;
+        if (!output) {
+          result = g.add('tanh');
+          g.wire(z, result, 'x');
+        }
+        g.wire(result, g.output('y'), 'in');
+      });
+      inputs.forEach((p, k) => b.wire(p, neuron, `in${k}`));
+      return [neuron, 'y'];
+    });
+  });
+  const scores = b.add('concat', { count: prev.length }, { label: 'scores' });
+  prev.forEach((p, k) => b.wire(p, scores, `in${k}`));
+  const ce = b.add('softmax_cross_entropy');
+  b.wire(scores, ce, 'logits');
+  b.wire([data, 'y'], ce, 'targets');
+  const acc = b.add('accuracy');
+  b.wire(scores, acc, 'scores');
+  b.wire([data, 'y'], acc, 'targets');
+  const min = b.add('minimize');
+  b.wire(ce, min, 'loss');
+  const plot = b.add('scatter', {}, { label: 'Predictions' });
+  b.wire([data, 'x'], plot, 'x');
+  b.wire([data, 'y'], plot, 'y');
+  b.wire(scores, plot, 'prediction');
+  return b.build();
+}
+
+export const classicMlp: Example = {
+  slug: 'classic-mlp',
+  title: 'The classic MLP, neuron by neuron',
+  summary: 'Every neuron and every weight on screen: watch each weight’s chart change as the network learns.',
+  build: () => buildClassicMlp(),
+};
+
+export const examples: Example[] = [fitALine, xorMlp, classicMlp, mnistClassifier, charTransformer, diffusion2d];
 
 export function getExample(slug: string): Example | undefined {
   return examples.find((e) => e.slug === slug);

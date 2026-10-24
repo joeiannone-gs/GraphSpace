@@ -100,3 +100,39 @@ export function fitInside(points: { pos: Vec2; r: number }[], containerRadius: n
   const halfDiagonal = Math.hypot(maxX - center[0], maxY - center[1]);
   return { scale: Math.min(1, (containerRadius * 0.92) / halfDiagonal), center };
 }
+
+function segmentHitsCircle(a: Vec2, b: Vec2, center: Vec2, r: number): boolean {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((center[0] - a[0]) * dx + (center[1] - a[1]) * dy) / len2));
+  return Math.hypot(center[0] - (a[0] + t * dx), center[1] - (a[1] + t * dy)) < r;
+}
+
+/**
+ * Straight or right-angled? Automatic mode draws a straight line when it goes forward and clears
+ * every node lying between the two ends along the flow; nodes beside the ends (the same layer)
+ * don't count, so dense layers fan out with straight lines while long skip connections that would
+ * cut through other layers get corners.
+ */
+export function chooseRoute(
+  start: Vec2,
+  end: Vec2,
+  direction: Direction,
+  obstacles: { pos: Vec2; r: number }[],
+  style: 'auto' | 'orthogonal' | 'straight' = 'auto',
+  ends?: { from: Vec2; to: Vec2 },
+): 'straight' | 'orthogonal' {
+  if (style !== 'auto') return style;
+  const [u0] = toFrame(start, direction);
+  const [u1] = toFrame(end, direction);
+  if (u1 - u0 < NODE_RADIUS * 0.5) return 'orthogonal';
+  const fromU = toFrame(ends?.from ?? start, direction)[0];
+  const toU = toFrame(ends?.to ?? end, direction)[0];
+  const between = obstacles.filter((o) => {
+    const u = toFrame(o.pos, direction)[0];
+    return u - o.r * 0.5 > fromU && u + o.r * 0.5 < toU;
+  });
+  const clear = between.every((o) => !segmentHitsCircle(start, end, o.pos, o.r * 1.08 + EDGE_WIDTH));
+  return clear ? 'straight' : 'orthogonal';
+}

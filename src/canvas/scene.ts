@@ -4,11 +4,11 @@
  * detect. Pixi objects never go into application state.
  */
 import { Container, FederatedPointerEvent } from 'pixi.js';
-import type { Id, ProjectDoc } from '@/doc/types';
+import type { Id, ProjectDoc, Vec2 } from '@/doc/types';
 import type { SessionSnapshot, TensorSnap } from '@/engine/session';
 import { getDef, portsOf } from '@/nodes/registry';
 import { DrawColors, drawImages, drawMessage, drawScatter, drawSparkline, drawTensor, drawTextBlock, formatNumber } from './displays/draw';
-import { NODE_RADIUS, fitInside, groupRadius, portOffsets } from './geometry';
+import { NODE_RADIUS, chooseRoute, fitInside, groupRadius, portOffsets } from './geometry';
 import type { CanvasTheme } from './theme';
 import { EdgeView } from './views/EdgeView';
 import { NodeModel, NodeView } from './views/NodeView';
@@ -156,6 +156,11 @@ export class Scene {
       }
     }
 
+    // Edges route around nodes in their scope, so any change in a scope may reroute its edges.
+    const changedScopes = new Set<Id | null>([...changed].map((id) => doc.nodes[id]?.parent ?? null));
+    if (prevDoc && Object.keys(prevDoc.nodes).some((id) => !doc.nodes[id])) {
+      for (const id of Object.keys(prevDoc.nodes)) if (!doc.nodes[id]) changedScopes.add(prevDoc.nodes[id].parent);
+    }
     const selectedNodes = new Set(ui.selectedNodes);
     const selectionChanged = !prevUi || prevUi.selectedEdges !== ui.selectedEdges || prevUi.showGradients !== ui.showGradients;
     const added = new Set(ui.diff?.added ?? []);
@@ -188,7 +193,9 @@ export class Scene {
         view.edge !== edge ||
         changed.has(edge.from.node) ||
         changed.has(edge.to.node) ||
+        changedScopes.has(doc.nodes[edge.from.node]?.parent ?? null) ||
         prevDoc?.layout.direction !== doc.layout.direction ||
+        prevDoc?.layout.edges !== doc.layout.edges ||
         selectionChanged;
       view.edge = edge;
       if (dirty) this.drawEdge(view);
@@ -229,9 +236,20 @@ export class Scene {
       return;
     }
     const sourceKey = this.resolveKey(edge.from.node, edge.from.port);
+    const scope = doc.nodes[edge.from.node]?.parent ?? null;
+    const obstacles: { pos: Vec2; r: number }[] = [];
+    for (const [id, v] of this.nodes) {
+      if (id === edge.from.node || id === edge.to.node || doc.nodes[id]?.parent !== scope) continue;
+      obstacles.push({ pos: v.model.node.pos, r: v.model.radius });
+    }
     view.draw(start, end, doc.layout.direction, this.theme, {
       selected: !!this.ui?.selectedEdges.includes(edge.id),
       gradient: sourceKey ? this.gradientLevel(sourceKey) : null,
+      straight:
+        chooseRoute(start, end, doc.layout.direction, obstacles, doc.layout.edges, {
+          from: from!.model.node.pos,
+          to: to!.model.node.pos,
+        }) === 'straight',
     });
   }
 
@@ -274,7 +292,9 @@ export class Scene {
       for (const [id, n] of Object.entries(snapshot.nodes)) {
         const key = n.outputs.out;
         const v = key ? snapshot.tensors[key] : undefined;
-        if (doc.nodes[id]?.type === 'accuracy' && v) {
+        // Accuracy and single-number parameters get a chart of their value over training.
+        const type = doc.nodes[id]?.type;
+        if (v && (type === 'accuracy' || (type === 'parameter' && v.data.length === 1))) {
           const h = this.scalarHistory.get(id) ?? [];
           h.push(v.data[0]);
           if (h.length > 400) h.shift();
@@ -320,9 +340,16 @@ export class Scene {
     if (!ns || ns.status === 'blocked') return null;
     const t = (key: string | undefined): TensorSnap | undefined => (key ? snap.tensors[key] : undefined);
     switch (def.display) {
-      case 'value':
-      case 'tensor':
       case 'parameter': {
+        const v = t(ns.outputs.out);
+        if (v && v.data.length === 1) {
+          const history = this.scalarHistory.get(id) ?? [];
+          return (ctx, w, h) => (drawSparkline(ctx, history, v.data[0], 'θ', w, h, c), true);
+        }
+        return v ? (ctx, w, h) => (drawTensor(ctx, v, w, h, c), true) : null;
+      }
+      case 'value':
+      case 'tensor': {
         const v = t(ns.outputs.out) ?? t(ns.inputs.in);
         return v ? (ctx, w, h) => (drawTensor(ctx, v, w, h, c), true) : null;
       }

@@ -51,7 +51,7 @@ export const projectDocSchema = z.object({
     momentum: z.number().min(0).max(1),
   }),
   generate: z.object({ steps: z.number().int().min(1).max(10_000) }),
-  layout: z.object({ direction: z.enum(['up', 'right']) }),
+  layout: z.object({ direction: z.enum(['up', 'right']), edges: z.enum(['auto', 'orthogonal', 'straight']).optional() }),
   info: z.object({ description: z.string().max(50_000) }),
 }) satisfies z.ZodType<ProjectDoc>;
 

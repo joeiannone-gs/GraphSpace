@@ -4,7 +4,7 @@
  */
 import { createSlice, original, type PayloadAction } from '@reduxjs/toolkit';
 import type { Subtree } from '@/doc/clone';
-import { emptyDoc, type Id, type PortRef, type ProjectDoc, type Vec2 } from '@/doc/types';
+import { emptyDoc, type EdgeStyle, type Id, type PortRef, type ProjectDoc, type Vec2 } from '@/doc/types';
 import * as ops from '@/graph/ops';
 
 const HISTORY_LIMIT = 100;
@@ -145,6 +145,9 @@ const docSlice = createSlice({
     },
     setDirection(state, a: PayloadAction<ProjectDoc['layout']['direction']>) {
       edit(state, (d) => ops.setDirection(d, a.payload));
+    },
+    setEdgeStyle(state, a: PayloadAction<EdgeStyle>) {
+      edit(state, (d) => ops.setEdgeStyle(d, a.payload));
     },
     setTrainedValues(state, a: PayloadAction<Record<Id, { shape: number[]; data: number[] }>>) {
       edit(state, (d) => {

@@ -30,3 +30,20 @@ describe('canvas geometry', () => {
     expect(fit.scale).toBeLessThan(0.3);
   });
 });
+
+describe('automatic edge routes', () => {
+  it('goes straight when clear, with corners around nodes or backwards', async () => {
+    const { chooseRoute } = await import('./geometry');
+    // up flow: forward and clear → straight
+    expect(chooseRoute([0, 0], [800, -2000], 'up', [])).toBe('straight');
+    // a node sitting on the straight line → corners
+    expect(chooseRoute([0, 0], [0, -3000], 'up', [{ pos: [0, -1500], r: 300 }])).toBe('orthogonal');
+    // target behind the source → corners
+    expect(chooseRoute([0, -2000], [0, 0], 'up', [])).toBe('orthogonal');
+    // a neighbour in the same layer as the target doesn't block a fan line
+    const neighbour = { pos: [500, -1300] as [number, number], r: 500 };
+    expect(chooseRoute([0, 0], [900, -1000], 'up', [neighbour], 'auto', { from: [0, 300], to: [900, -1300] })).toBe('straight');
+    // a forced style wins
+    expect(chooseRoute([0, 0], [0, -3000], 'up', [{ pos: [0, -1500], r: 300 }], 'straight')).toBe('straight');
+  });
+});
