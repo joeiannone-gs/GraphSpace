@@ -17,8 +17,16 @@ gscp() {
   gcloud compute scp --project "$GS_PROJECT" --zone "$GS_ZONE" --quiet --strict-host-key-checking=no "$@"
 }
 
+reserved_ip() {
+  gcloud compute addresses describe "$GS_ADDRESS" --project "$GS_PROJECT" --region "$GS_REGION" --format='value(address)' 2>/dev/null || true
+}
+
+# The VM's public IP: the reserved static one if it exists, otherwise its ephemeral one.
 static_ip() {
-  gcloud compute addresses describe "$GS_ADDRESS" --project "$GS_PROJECT" --region "$GS_REGION" --format='value(address)'
+  local ip
+  ip=$(reserved_ip)
+  [ -n "$ip" ] || ip=$(gcloud compute instances describe "$GS_VM" --project "$GS_PROJECT" --zone "$GS_ZONE" --format='value(networkInterfaces[0].accessConfigs[0].natIP)' 2>/dev/null || true)
+  echo "$ip"
 }
 
 # A hostname that resolves to the IP with no DNS setup (sslip.io), so HTTPS works right away.

@@ -11,7 +11,7 @@ gssh "set -e
   sudo install -m 755 $TMP/remote-deploy.sh $TMP/backup.sh $TMP/render-caddy.sh /opt/graphspace/bin/
   sudo install -m 644 $TMP/Caddyfile /opt/graphspace/etc/Caddyfile.template
   echo '$GS_BACKUP_URI' | sudo tee /etc/graphspace/backup-uri >/dev/null
-  grep -qx '$(sslip_host)' /etc/graphspace/hosts 2>/dev/null || echo '$(sslip_host)' | sudo tee -a /etc/graphspace/hosts >/dev/null
+  sudo touch /etc/graphspace/hosts && sudo sed -i '/\.sslip\.io\$/d' /etc/graphspace/hosts && echo '$(sslip_host)' | sudo tee -a /etc/graphspace/hosts >/dev/null
   sudo systemctl daemon-reload
   sudo systemctl enable --now graphspace-backup.timer
   sudo systemctl enable graphspace
