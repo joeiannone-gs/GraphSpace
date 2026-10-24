@@ -136,7 +136,12 @@ export class NodeView {
     const draw = (list: { def: PortDef; pos: Vec2 }[], kind: 'in' | 'out') => {
       for (const { def, pos } of list) {
         const nodule = new Graphics();
-        nodule.circle(0, 0, PORT_RADIUS).fill({ color: def.feedback ? this.theme.feedback : this.theme.port });
+        if (this.isGroup) {
+          // A gate: values pass through the group's wall here.
+          nodule.circle(0, 0, PORT_RADIUS * 1.3).fill({ color: this.theme.background }).stroke({ color: this.theme.port, width: PORT_RADIUS * 0.45 });
+        } else {
+          nodule.circle(0, 0, PORT_RADIUS).fill({ color: def.feedback ? this.theme.feedback : this.theme.port });
+        }
         if (def.optional) nodule.circle(0, 0, PORT_RADIUS * 0.45).fill({ color: this.theme.background });
         nodule.position.set(pos[0], pos[1]);
         nodule.label = `${kind}:${def.name}`;

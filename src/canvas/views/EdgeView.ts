@@ -1,7 +1,7 @@
-/** The pixi display of one edge: an orthogonal route with an arrowhead (dashed for feedback). */
+/** The pixi display of one edge: a routed polyline with an arrowhead (dashed for feedback). */
 import { Graphics } from 'pixi.js';
 import type { DocEdge, Vec2 } from '@/doc/types';
-import { Direction, EDGE_WIDTH, pointAlong, routeEdge } from '../geometry';
+import { EDGE_WIDTH, pointAlong } from '../geometry';
 import type { CanvasTheme } from '../theme';
 
 function distanceToSegment(p: Vec2, a: Vec2, b: Vec2): number {
@@ -17,7 +17,7 @@ export class EdgeView {
   private points: Vec2[] = [];
 
   /** A stable per-edge offset in [−1, 1] so parallel routes spread out. */
-  private readonly lane: number;
+  readonly lane: number;
 
   constructor(public edge: DocEdge) {
     let h = 0;
@@ -32,9 +32,14 @@ export class EdgeView {
     };
   }
 
-  draw(start: Vec2, end: Vec2, direction: Direction, theme: CanvasTheme, opts: { selected: boolean; gradient: number | null; straight: boolean }) {
+  /**
+   * startWidth/endWidth: when an end sits on a group's gate, the width the edge has outside the
+   * group (in this scope's units). The edge funnels from that width down to its own, so a value
+   * visibly flows into (or out of) the smaller world inside the group.
+   */
+  draw(points: Vec2[], theme: CanvasTheme, opts: { selected: boolean; gradient: number | null; startWidth?: number; endWidth?: number }) {
     const feedback = this.edge.kind === 'feedback';
-    this.points = opts.straight && !feedback ? [start, end] : routeEdge(start, end, direction, this.lane);
+    this.points = points;
     const g = this.g;
     g.clear();
     if (opts.gradient !== null && !feedback) {
@@ -49,6 +54,9 @@ export class EdgeView {
       this.strokePath(g);
       g.stroke({ color, width: EDGE_WIDTH, join: 'round' });
     }
+    if (opts.startWidth && opts.startWidth > EDGE_WIDTH) this.funnel(g, this.points[0], this.points[1], opts.startWidth, color);
+    const n = this.points.length;
+    if (opts.endWidth && opts.endWidth > EDGE_WIDTH) this.funnel(g, this.points[n - 1], this.points[n - 2], opts.endWidth, color);
     const { at, angle } = pointAlong(this.points, 0.82);
     const size = EDGE_WIDTH * 3.2;
     g.poly([
@@ -59,6 +67,23 @@ export class EdgeView {
       at[0] + Math.cos(angle - 2.5) * size,
       at[1] + Math.sin(angle - 2.5) * size,
     ]).fill({ color });
+  }
+
+  /** A wedge from `width` at `gate` narrowing to the normal edge width along most of the segment towards `toward`. */
+  private funnel(g: Graphics, gate: Vec2, toward: Vec2, width: number, color: number) {
+    const dx = toward[0] - gate[0];
+    const dy = toward[1] - gate[1];
+    const len = Math.hypot(dx, dy);
+    if (len === 0) return;
+    const L = len * 0.65;
+    const ux = dx / len;
+    const uy = dy / len;
+    const nx = -uy;
+    const ny = ux;
+    const end: Vec2 = [gate[0] + ux * L, gate[1] + uy * L];
+    const a = width / 2;
+    const b = EDGE_WIDTH / 2;
+    g.poly([gate[0] + nx * a, gate[1] + ny * a, end[0] + nx * b, end[1] + ny * b, end[0] - nx * b, end[1] - ny * b, gate[0] - nx * a, gate[1] - ny * a]).fill({ color });
   }
 
   private strokePath(g: Graphics) {

@@ -8,7 +8,7 @@ import type { Id, ProjectDoc, Vec2 } from '@/doc/types';
 import type { SessionSnapshot, TensorSnap } from '@/engine/session';
 import { getDef, portsOf } from '@/nodes/registry';
 import { DrawColors, drawImages, drawMessage, drawNetwork, drawScatter, drawSparkline, drawTensor, drawTextBlock, formatNumber } from './displays/draw';
-import { NODE_RADIUS, chooseRoute, fitInside, groupRadius, portOffsets } from './geometry';
+import { EDGE_WIDTH, NODE_RADIUS, fitInside, groupRadius, portOffsets, routePath } from './geometry';
 import type { CanvasTheme } from './theme';
 import { EdgeView } from './views/EdgeView';
 import { NodeModel, NodeView } from './views/NodeView';
@@ -151,26 +151,39 @@ export class Scene {
       }
     }
 
+    this.open = new Set<Id>();
+    for (let s = ui.scope; s !== null && doc.nodes[s]; s = doc.nodes[s].parent) this.open.add(s);
+    const fitChanged = new Set<Id>();
+
     // Fit each group's contents inside its circle.
     if (!this.freezeFits) {
       for (const id of order) {
         const view = this.nodes.get(id)!;
         if (!view.isGroup) continue;
-        const kids = (children.get(id) ?? []).map((k) => ({ pos: doc.nodes[k].pos, r: this.nodes.get(k)!.model.radius }));
-        const fit = fitInside(kids, view.model.radius);
+        // Hidden Input/Output nodes don't take up room: the group's wall is where values enter and leave.
+        const kids = (children.get(id) ?? [])
+          .filter((k) => !this.hiddenBoundary(k))
+          .map((k) => ({ pos: doc.nodes[k].pos, r: this.nodes.get(k)!.model.radius }));
+        // Leave room between the contents and the gates on the in and out walls.
+        const pad = NODE_RADIUS * 0.8;
+        const fit = fitInside(kids, view.model.radius, doc.layout.direction === 'up' ? [0, pad] : [pad, 0]);
         if (fit.scale !== view.fit.scale || fit.center[0] !== view.fit.center[0] || fit.center[1] !== view.fit.center[1]) {
           view.setInnerFit(fit.scale, fit.center);
+          fitChanged.add(id);
         }
       }
     }
 
     // Edges route around nodes in their scope, so any change in a scope may reroute its edges.
     const changedScopes = new Set<Id | null>([...changed].map((id) => doc.nodes[id]?.parent ?? null));
+    // A group whose size, ports or inner scale changed moves its gates: redraw the edges inside it.
+    for (const id of [...changed, ...fitChanged]) if (doc.nodes[id]?.type === 'composite') changedScopes.add(id);
     if (prevDoc && Object.keys(prevDoc.nodes).some((id) => !doc.nodes[id])) {
       for (const id of Object.keys(prevDoc.nodes)) if (!doc.nodes[id]) changedScopes.add(prevDoc.nodes[id].parent);
     }
     const selectedNodes = new Set(ui.selectedNodes);
-    const selectionChanged = !prevUi || prevUi.selectedEdges !== ui.selectedEdges || prevUi.showGradients !== ui.showGradients;
+    const selectionChanged =
+      !prevUi || prevUi.selectedEdges !== ui.selectedEdges || prevUi.showGradients !== ui.showGradients || prevUi.scope !== ui.scope;
     const added = new Set(ui.diff?.added ?? []);
     const changedInDiff = new Set(ui.diff?.changed ?? []);
     for (const [id, view] of this.nodes) {
@@ -232,32 +245,79 @@ export class Scene {
     return Math.max(0, 1 + Math.log10(Math.max(ratio, 1e-4)) / 4);
   }
 
+  /** Groups whose inside is being edited (the scope and its ancestors): their Input/Output nodes show. */
+  private open = new Set<Id>();
+
+  private isBoundary(id: Id): boolean {
+    const t = this.doc?.nodes[id]?.type;
+    return t === 'input' || t === 'output';
+  }
+
+  /** A closed group's Input/Output nodes are hidden: edges pass through the group's gates instead. */
+  private hiddenBoundary(id: Id): boolean {
+    const parent = this.doc?.nodes[id]?.parent ?? null;
+    return this.isBoundary(id) && parent !== null && !this.open.has(parent);
+  }
+
+  /** Where a group's gate for `port` is, in the coordinates of the group's inside. */
+  private gate(groupId: Id, kind: 'in' | 'out', port: string): Vec2 | undefined {
+    const g = this.nodes.get(groupId);
+    const p = g?.model.ports[kind === 'in' ? 'inputs' : 'outputs'].find((x) => x.def.name === port)?.pos;
+    if (!g || !p) return undefined;
+    return [p[0] / g.fit.scale + g.fit.center[0], p[1] / g.fit.scale + g.fit.center[1]];
+  }
+
   private drawEdge(view: EdgeView) {
     const doc = this.doc!;
     const edge = view.edge;
+    const fromNode = doc.nodes[edge.from.node];
+    const toNode = doc.nodes[edge.to.node];
     const from = this.nodes.get(edge.from.node);
     const to = this.nodes.get(edge.to.node);
-    const start = from?.portPosition('out', edge.from.port);
-    const end = to?.portPosition('in', edge.to.port);
-    if (!start || !end) {
+    let start = from?.portPosition('out', edge.from.port);
+    let end = to?.portPosition('in', edge.to.port);
+    let fromCenter = from?.model.node.pos;
+    let toCenter = to?.model.node.pos;
+    let startWidth: number | undefined;
+    let endWidth: number | undefined;
+    // Inside a closed group, edges start at its entry gate and end at its exit gate, funnelling
+    // from the outside width to the inside width.
+    if (fromNode && this.hiddenBoundary(fromNode.id)) {
+      start = this.gate(fromNode.parent!, 'in', String(fromNode.params.name));
+      fromCenter = start;
+      startWidth = EDGE_WIDTH / (this.nodes.get(fromNode.parent!)?.fit.scale ?? 1);
+    }
+    if (toNode && this.hiddenBoundary(toNode.id)) {
+      end = this.gate(toNode.parent!, 'out', String(toNode.params.name));
+      toCenter = end;
+      endWidth = EDGE_WIDTH / (this.nodes.get(toNode.parent!)?.fit.scale ?? 1);
+    }
+    if (!start || !end || !fromCenter || !toCenter) {
       view.g.clear();
       return;
     }
     const sourceKey = this.resolveKey(edge.from.node, edge.from.port);
-    const scope = doc.nodes[edge.from.node]?.parent ?? null;
+    const scope = fromNode?.parent ?? null;
     const obstacles: { pos: Vec2; r: number }[] = [];
     for (const [id, v] of this.nodes) {
-      if (id === edge.from.node || id === edge.to.node || doc.nodes[id]?.parent !== scope) continue;
-      obstacles.push({ pos: v.model.node.pos, r: v.model.radius });
+      if (id === edge.from.node || id === edge.to.node || doc.nodes[id]?.parent !== scope || this.hiddenBoundary(id)) continue;
+      // A group's title sits just outside its circle; keep routes off it too.
+      obstacles.push({ pos: v.model.node.pos, r: v.model.radius * (v.isGroup ? 1.12 : 1) });
     }
-    view.draw(start, end, doc.layout.direction, this.theme, {
+    const route = {
+      style: doc.layout.edges,
+      feedback: edge.kind === 'feedback',
+      lane: view.lane,
+      obstacles,
+      ends: { from: fromCenter, to: toCenter },
+      // A gate sits right against the contents: rather than doubling back to it, go straight.
+      direct: !!(startWidth || endWidth),
+    };
+    view.draw(routePath(start, end, doc.layout.direction, route), this.theme, {
       selected: !!this.ui?.selectedEdges.includes(edge.id),
       gradient: sourceKey ? this.gradientLevel(sourceKey) : null,
-      straight:
-        chooseRoute(start, end, doc.layout.direction, obstacles, doc.layout.edges, {
-          from: from!.model.node.pos,
-          to: to!.model.node.pos,
-        }) === 'straight',
+      startWidth,
+      endWidth,
     });
   }
 
@@ -281,6 +341,7 @@ export class Scene {
       const active = node.parent === scope;
       const isAncestor = ancestors.has(id);
       view.container.alpha = active || isAncestor || insideScope(id) ? 1 : 0.22;
+      view.container.visible = !this.hiddenBoundary(id);
       view.setInteractive(active ? 'active' : isAncestor ? 'ancestor' : 'off');
     }
     for (const [id, view] of this.edges) {
