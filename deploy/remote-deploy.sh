@@ -11,6 +11,9 @@ rm -rf "$REL"
 mkdir -p "$REL"
 tar -xzf "$TGZ" -C "$REL"
 rm -f "$TGZ"
+# The service user only needs to read the release.
+chown -R root:root "$REL"
+chmod -R u=rwX,go=rX "$REL"
 
 PREV=$(readlink -f "$ROOT/current" 2>/dev/null || true)
 ln -sfn "$REL" "$ROOT/current.new" && mv -T "$ROOT/current.new" "$ROOT/current"
